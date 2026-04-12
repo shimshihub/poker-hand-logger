@@ -83,6 +83,19 @@
   .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#4ade80;color:#0a0e17;padding:10px 24px;border-radius:10px;font-weight:700;font-size:14px;display:none;z-index:999}
   .toast.show{display:block;animation:fadeInOut 2s}
   @keyframes fadeInOut{0%{opacity:0}10%{opacity:1}80%{opacity:1}100%{opacity:0}}
+  /* Poker Table */
+  .table-wrap{position:relative;width:100%;padding-top:65%;margin:16px 0;border-radius:16px;overflow:hidden;background:#0d1520}
+  .table-felt{position:absolute;top:10%;left:8%;width:84%;height:80%;border-radius:50%;background:linear-gradient(135deg,#1a5c2a,#1e7a34,#1a5c2a);border:4px solid #3a2a1a;box-shadow:inset 0 0 40px rgba(0,0,0,.4),0 4px 20px rgba(0,0,0,.5)}
+  .table-board{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;gap:3px;z-index:10}
+  .table-board .v-card{width:32px;height:44px;font-size:12px;line-height:44px;margin:0 1px;border-radius:4px}
+  .table-pot{position:absolute;top:32%;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;color:#ffd700;background:rgba(0,0,0,.5);padding:3px 10px;border-radius:10px;z-index:10}
+  .seat{position:absolute;width:56px;text-align:center;transform:translate(-50%,-50%);z-index:5}
+  .seat-circle{width:42px;height:42px;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;border:2px solid #333;background:#1e2a40;color:#8b9dc3}
+  .seat.hero .seat-circle{border-color:#ffd700;background:#2a2800;color:#ffd700}
+  .seat.villain .seat-circle{border-color:#f87171;background:#2a1010;color:#f87171}
+  .seat-cards{display:flex;gap:1px;justify-content:center;margin-top:3px}
+  .seat-cards .mini-card{width:22px;height:30px;background:#fff;border-radius:3px;font-size:9px;font-weight:700;line-height:30px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+  .seat-cards .mini-card.red{color:#d32f2f}.seat-cards .mini-card.black{color:#222}
 </style>
 </head>
 <body>
@@ -206,6 +219,8 @@ async function showReview(id){
   if(p.gameType)o+=`<div class="info-item"><div class="info-label">Type</div><div class="info-value">${p.gameType}</div></div>`;
   if(p.result&&p.result.outcome!=='unknown')o+=`<div class="info-item"><div class="info-label">Result</div><div class="info-value ${w?'won':'lost'}">${p.result.outcome.toUpperCase()}</div></div>`;
   o+=`</div>`;
+  // Poker Table Visualization
+  o+=renderTable(p);
   if(hc.length)o+=`<div class="v-cards"><div class="v-cards-label">Your Hand</div>${hc.map(c=>c.length>=2?ch(c[0],c[1]):'').join('')}</div>`;
   const a=p.actions||{};
   if(a.preflop)o+=`<div class="v-street"><div class="v-street-header"><span class="v-street-name">Preflop</span></div><div class="v-action">${a.preflop}</div></div>`;
@@ -252,6 +267,55 @@ function editHand(id){
   document.getElementById('saveBtn').textContent='Update Hand';
   document.getElementById('logTitle').textContent='Edit Hand';
   doTab('log');
+}
+
+function renderTable(p){
+  const positions=['BTN','SB','BB','UTG','UTG+1','MP','HJ','CO'];
+  const coords=[[85,70],[70,90],[30,90],[15,70],[10,40],[20,12],[50,5],[80,12]];
+  const hc=p.holeCards||[],b=p.board||{},heroPos=p.position||'BTN',
+    villPos=p.villainInfo?.[0]?.position||'BB';
+  const boardCards=[...(b.flop||[])];
+  if(b.turn)boardCards.push(b.turn);
+  if(b.river)boardCards.push(b.river);
+  let html='<div class="table-wrap"><div class="table-felt"></div>';
+  if(boardCards.length){
+    html+='<div class="table-board">';
+    boardCards.forEach(c=>{
+      if(c&&c.length>=2){
+        const rk=c[0]==='T'?'10':c[0].toUpperCase();
+        html+=`<span class="v-card v-card-sm ${SC[c[1]]||'black'}" style="width:32px;height:44px;font-size:12px;line-height:44px;margin:0 1px;border-radius:4px">${rk}${S[c[1]]||''}</span>`;
+      }
+    });
+    html+='</div>';
+  }
+  positions.forEach((pos,i)=>{
+    const isHero=pos===heroPos,isVillain=pos===villPos;
+    const cls=isHero?'hero':isVillain?'villain':'';
+    html+=`<div class="seat ${cls}" style="left:${coords[i][0]}%;top:${coords[i][1]}%">`;
+    html+=`<div class="seat-circle">${pos}</div>`;
+    if(isHero&&hc.length>=2){
+      html+='<div class="seat-cards">';
+      hc.forEach(c=>{
+        if(c&&c.length>=2){
+          const rk=c[0]==='T'?'10':c[0].toUpperCase();
+          html+=`<div class="mini-card ${SC[c[1]]||'black'}">${rk}${S[c[1]]||''}</div>`;
+        }
+      });
+      html+='</div>';
+    }
+    if(isVillain&&p.villainInfo?.[0]?.hand){
+      const vh=p.villainInfo[0].hand;
+      if(vh.length<=3&&/^[2-9TJQKA]{2}[sohdc]?$/i.test(vh)){
+        html+='<div class="seat-cards">';
+        html+=`<div class="mini-card black">${vh[0].toUpperCase()}</div>`;
+        html+=`<div class="mini-card black">${vh[1].toUpperCase()}</div>`;
+        html+='</div>';
+      }
+    }
+    html+='</div>';
+  });
+  html+='</div>';
+  return html;
 }
 
 loadHands();
