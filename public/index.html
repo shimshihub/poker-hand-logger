@@ -112,6 +112,7 @@
   <div class="section"><div class="section-title">Game Info</div>
     <div class="row"><div class="field"><label>Game Type</label><select id="gameType"><option>Cash</option><option>Tournament</option></select></div><div class="field"><label>Location</label><select id="location"><option>Pvaley Home Game</option><option>Casino</option><option>Other</option></select></div></div>
     <div class="row"><div class="field"><label>Small Blind</label><input type="number" id="sb" value="5"></div><div class="field"><label>Big Blind</label><input type="number" id="bb" value="10"></div><div class="field"><label>Straddle</label><input type="number" id="straddle"></div></div>
+    <div class="row"><div class="field"><label>Players at Table</label><select id="numPlayers"><option value="6">6</option><option value="7">7</option><option value="8" selected>8</option><option value="9">9</option></select></div></div>
   </div>
   <div class="section"><div class="section-title">Players</div>
     <div class="row"><div class="field"><label>Your Position</label><select id="heroPos"><option>UTG</option><option>UTG+1</option><option>MP</option><option>HJ</option><option>CO</option><option selected>BTN</option><option>SB</option><option>BB</option></select></div><div class="field"><label>Villain Position</label><select id="villainPos"><option>UTG</option><option>UTG+1</option><option>MP</option><option>HJ</option><option>CO</option><option>BTN</option><option>SB</option><option selected>BB</option></select></div></div>
@@ -165,6 +166,7 @@ async function saveHand(){
     gameType:document.getElementById('gameType').value.toLowerCase(),
     location:document.getElementById('location').value,
     stakes:{smallBlind:Number(document.getElementById('sb').value)||0,bigBlind:Number(document.getElementById('bb').value)||0},
+    numPlayers:Number(document.getElementById('numPlayers').value)||8,
     board:{flop:flop.length===3?flop:[],turn:cs(document.getElementById('tr').value,document.getElementById('ts').value)||null,river:cs(document.getElementById('rr').value,document.getElementById('rs').value)||null},
     actions:{preflop:document.getElementById('preflopAction').value||null,flop:document.getElementById('flopAction').value||null,turn:document.getElementById('turnAction').value||null,river:document.getElementById('riverAction').value||null},
     result:{outcome:document.getElementById('result').value.toLowerCase(),amount:Number(document.getElementById('resultAmount').value)||null},
@@ -175,23 +177,25 @@ async function saveHand(){
   try{
     let id;
     if(editId){
-      await fetch('/api/hands/'+editId,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({parsed})});
+      const idx=allHands.findIndex(h=>h.id===editId);
+      if(idx>=0)allHands[idx].parsed=parsed;
       id=editId;editId=null;
     }else{
-      const r=await fetch('/api/hands',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rawText:hc.join(' ')+'|'+parsed.position})});
-      const h=await r.json();id=h.id;
-      await fetch('/api/hands/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({parsed})});
+      id=Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+      allHands.unshift({id,parsed,createdAt:new Date().toISOString()});
     }
+    localStorage.setItem('pokerHands',JSON.stringify(allHands));
     toast('Hand saved!');clearForm();
-    await loadHands();showReview(id);
+    document.getElementById('handsTabBtn').textContent='My Hands ('+allHands.length+')';
+    showReview(id);
   }catch(e){toast('Error saving');console.error(e)}
   btn.disabled=false;btn.textContent='Save Hand';document.getElementById('logTitle').textContent='Log Hand';
 }
 
 function clearForm(){['hc1r','hc2r','f1r','f2r','f3r','tr','rr','heroStack','villainStack','resultAmount','villainHand','tags','notes','preflopAction','flopAction','turnAction','riverAction','straddle'].forEach(id=>{document.getElementById(id).value=''})}
 
-async function loadHands(){
-  try{const r=await fetch('/api/hands');allHands=await r.json();document.getElementById('handsTabBtn').textContent='My Hands ('+allHands.length+')';renderList()}catch(e){console.error(e)}
+function loadHands(){
+  try{allHands=JSON.parse(localStorage.getItem('pokerHands')||'[]');document.getElementById('handsTabBtn').textContent='My Hands ('+allHands.length+')';renderList()}catch(e){console.error(e)}
 }
 
 function renderList(){
@@ -204,10 +208,10 @@ function renderList(){
   }).join('');
 }
 
-async function delHand(id){if(!confirm('Delete?'))return;await fetch('/api/hands/'+id,{method:'DELETE'});loadHands()}
+function delHand(id){if(!confirm('Delete?'))return;allHands=allHands.filter(h=>h.id!==id);localStorage.setItem('pokerHands',JSON.stringify(allHands));loadHands()}
 
-async function showReview(id){
-  const r=await fetch('/api/hands/'+id);const h=await r.json();const p=h.parsed;
+function showReview(id){
+  const h=allHands.find(x=>x.id===id);if(!h)return;const p=h.parsed;
   const d=new Date(h.createdAt),w=p.result?.outcome==='won',l=p.result?.outcome==='lost',b=p.board||{},hc=p.holeCards||[];
   const hcd=hc.map(c=>c.length>=2?(c[0]==='T'?'10':c[0])+(S[c[1]]||''):c).join(' ');
   let o='';
@@ -242,6 +246,7 @@ function editHand(id){
   document.getElementById('location').value=p.location||'Pvaley Home Game';
   document.getElementById('sb').value=p.stakes?.smallBlind||5;
   document.getElementById('bb').value=p.stakes?.bigBlind||10;
+  document.getElementById('numPlayers').value=p.numPlayers||8;
   document.getElementById('heroPos').value=p.position||'BTN';
   document.getElementById('villainPos').value=p.villainInfo?.[0]?.position||'BB';
   document.getElementById('heroStack').value='';document.getElementById('villainStack').value='';
@@ -270,8 +275,16 @@ function editHand(id){
 }
 
 function renderTable(p){
-  const positions=['BTN','SB','BB','UTG','UTG+1','MP','HJ','CO'];
-  const coords=[[85,70],[70,90],[30,90],[15,70],[10,40],[20,12],[50,5],[80,12]];
+  const seatLayouts={
+    6:{pos:['BTN','SB','BB','UTG','MP','CO'],coords:[[85,70],[65,92],[35,92],[15,70],[15,25],[85,25]]},
+    7:{pos:['BTN','SB','BB','UTG','MP','HJ','CO'],coords:[[85,70],[65,92],[35,92],[15,70],[10,40],[30,10],[70,10]]},
+    8:{pos:['BTN','SB','BB','UTG','UTG+1','MP','HJ','CO'],coords:[[85,70],[70,90],[30,90],[15,70],[10,40],[20,12],[50,5],[80,12]]},
+    9:{pos:['BTN','SB','BB','UTG','UTG+1','UTG+2','MP','HJ','CO'],coords:[[88,55],[72,90],[28,90],[12,70],[8,42],[12,18],[35,5],[65,5],[88,18]]}
+  };
+  const n=p.numPlayers||8;
+  const layout=seatLayouts[n]||seatLayouts[8];
+  const positions=layout.pos;
+  const coords=layout.coords;
   const hc=p.holeCards||[],b=p.board||{},heroPos=p.position||'BTN',
     villPos=p.villainInfo?.[0]?.position||'BB';
   const boardCards=[...(b.flop||[])];
