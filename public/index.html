@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hand Logger</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0a0e17;
+    color: #e0e0e0;
+    min-height: 100vh;
+    padding: 16px;
+  }
+  .container { max-width: 480px; margin: 0 auto; }
+
+  h1 {
+    font-size: 1.4rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, #ffd700, #ffaa00);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .section {
+    background: #151b2b;
+    border: 1px solid #2a3550;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .section-title {
+    font-size: 0.75rem;
+    color: #ffd700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .row:last-child { margin-bottom: 0; }
+
+  .field {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .field label {
+    font-size: 0.7rem;
+    color: #8b9dc3;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .field input, .field select, .field textarea {
+    background: #1e2a40;
+    border: 1px solid #2a3550;
+    border-radius: 8px;
+    color: #fff;
+    padding: 10px 12px;
+    font-size: 0.9rem;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: #ffd700;
+  }
+  .field textarea {
+    resize: vertical;
+    min-height: 60px;
+  }
+  .field select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b9dc3' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+  }
+
+  /* Card picker */
+  .card-input-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .card-input {
+    width: 48px;
+    text-align: center;
+    text-transform: uppercase;
+    font-weight: 700;
+    font-size: 1rem;
+  }
+  .suit-select {
+    width: 48px;
+    text-align: center;
+    font-size: 1.1rem;
+  }
+  .card-pair {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    background: #1a2236;
+    border-radius: 8px;
+    padding: 6px 8px;
+  }
+  .card-pair-label {
+    font-size: 0.65rem;
+    color: #5a6a8a;
+    margin-right: 4px;
+  }
+
+  /* Street sections */
+  .street-section {
+    border-top: 1px solid #2a3550;
+    padding-top: 12px;
+    margin-top: 12px;
+  }
+  .street-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #4fc3f7;
+    margin-bottom: 8px;
+  }
+
+  /* Buttons */
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.2s;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary {
+    background: linear-gradient(135deg, #ffd700, #ffaa00);
+    color: #0a0e17;
+    margin-bottom: 10px;
+  }
+  .btn-secondary {
+    background: #1e2a40;
+    color: #8b9dc3;
+    border: 1px solid #2a3550;
+  }
+
+  /* Output */
+  .output-area {
+    display: none;
+    margin-top: 20px;
+  }
+  .output-area.visible { display: block; }
+  .output-box {
+    background: #1e2a40;
+    border: 1px solid #2a3550;
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: #c0d0e8;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  .copy-toast {
+    display: none;
+    text-align: center;
+    padding: 8px;
+    color: #4ade80;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .copy-toast.show { display: block; }
+
+  .result-select { width: 100%; }
+  .result-won { color: #4ade80; }
+  .result-lost { color: #f87171; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Hand Logger</h1>
+
+  <!-- Game Info -->
+  <div class="section">
+    <div class="section-title">Game Info</div>
+    <div class="row">
+      <div class="field">
+        <label>Game Type</label>
+        <select id="gameType">
+          <option value="Cash">Cash</option>
+          <option value="Tournament">Tournament</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Location</label>
+        <select id="location">
+          <option value="Pvaley Home Game">Pvaley Home Game</option>
+          <option value="Casino">Casino</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>Small Blind</label>
+        <input type="number" id="sb" placeholder="5" value="5">
+      </div>
+      <div class="field">
+        <label>Big Blind</label>
+        <input type="number" id="bb" placeholder="10" value="10">
+      </div>
+      <div class="field">
+        <label>Straddle</label>
+        <input type="number" id="straddle" placeholder="20">
+      </div>
+    </div>
+  </div>
+
+  <!-- Players -->
+  <div class="section">
+    <div class="section-title">Players</div>
+    <div class="row">
+      <div class="field">
+        <label>Your Position</label>
+        <select id="heroPos">
+          <option value="UTG">UTG</option>
+          <option value="UTG+1">UTG+1</option>
+          <option value="UTG+2">UTG+2</option>
+          <option value="MP">MP</option>
+          <option value="HJ">HJ</option>
+          <option value="CO">CO</option>
+          <option value="BTN" selected>BTN</option>
+          <option value="SB">SB</option>
+          <option value="BB">BB</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Villain Position</label>
+        <select id="villainPos">
+          <option value="UTG">UTG</option>
+          <option value="UTG+1">UTG+1</option>
+          <option value="UTG+2">UTG+2</option>
+          <option value="MP">MP</option>
+          <option value="HJ">HJ</option>
+          <option value="CO">CO</option>
+          <option value="BTN">BTN</option>
+          <option value="SB">SB</option>
+          <option value="BB" selected>BB</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>Your Stack</label>
+        <input type="number" id="heroStack" placeholder="2500">
+      </div>
+      <div class="field">
+        <label>Villain Stack</label>
+        <input type="number" id="villainStack" placeholder="3000">
+      </div>
+    </div>
+  </div>
+
+  <!-- Hole Cards -->
+  <div class="section">
+    <div class="section-title">Your Hand</div>
+    <div class="row">
+      <div class="card-pair">
+        <div class="field">
+          <label>Card 1</label>
+          <div class="card-input-row">
+            <input type="text" id="hc1r" class="card-input" maxlength="2" placeholder="A">
+            <select id="hc1s" class="suit-select">
+              <option value="s">&#9824;</option>
+              <option value="h">&#9829;</option>
+              <option value="d">&#9830;</option>
+              <option value="c">&#9827;</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Card 2</label>
+          <div class="card-input-row">
+            <input type="text" id="hc2r" class="card-input" maxlength="2" placeholder="K">
+            <select id="hc2s" class="suit-select">
+              <option value="s">&#9824;</option>
+              <option value="h" selected>&#9829;</option>
+              <option value="d">&#9830;</option>
+              <option value="c">&#9827;</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action -->
+  <div class="section">
+    <div class="section-title">Action</div>
+
+    <div class="street-label">Preflop</div>
+    <div class="field" style="margin-bottom:12px">
+      <textarea id="preflopAction" placeholder="e.g. Hero raises to 110, BB 3-bets to 400, Hero calls"></textarea>
+    </div>
+
+    <div class="street-section">
+      <div class="street-label">Flop</div>
+      <div class="row">
+        <div class="card-pair">
+          <div class="card-input-row">
+            <input type="text" id="f1r" class="card-input" maxlength="2" placeholder="A">
+            <select id="f1s" class="suit-select">
+              <option value="s">&#9824;</option>
+              <option value="h">&#9829;</option>
+              <option value="d">&#9830;</option>
+              <option value="c">&#9827;</option>
+            </select>
+          </div>
+          <div class="card-input-row">
+            <input type="text" id="f2r" class="card-input" maxlength="2" placeholder="8">
+            <select id="f2s" class="suit-select">
+              <option value="s">&#9824;</option>
+              <option value="h">&#9829;</option>
+              <option value="d">&#9830;</option>
+              <option value="c">&#9827;</option>
+            </select>
+          </div>
+          <div class="card-input-row">
+            <input type="text" id="f3r" class="card-input" maxlength="2" placeholder="2">
+            <select id="f3s" class="suit-select">
+              <option value="s">&#9824;</option>
+              <option value="h">&#9829;</option>
+              <option value="d">&#9830;</option>
+              <option value="c">&#9827;</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="field" style="margin-top:8px">
+        <textarea id="flopAction" placeholder="e.g. Hero bets 100, BB raises to 400, Hero calls"></textarea>
+      </div>
+    </div>
+
+    <div class="street-section">
+      <div class="street-label">Turn</div>
+      <div class="row">
+        <div class="card-pair">
+          <div class="card-input-row">
+            <input type="text" id="tr" class="card-input" maxlength="2" placeholder="Q">
+            <select id="ts" class="suit-select">
+              <option value="s">&#9824;</option>
+              <option value="h" selected>&#9829;</option>
+              <option value="d">&#9830;</option>
+              <option value="c">&#9827;</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="field" style="margin-top:8px">
+        <textarea id="turnAction" placeholder="e.g. Check-check"></textarea>
+      </div>
+    </div>
+
+    <div class="street-section">
+      <div class="street-label">River</div>
+      <div class="row">
+        <div class="card-pair">
+          <div class="card-input-row">
+            <input type="text" id="rr" class="card-input" maxlength="2" placeholder="5">
+            <select id="rs" class="suit-select">
+              <option value="s">&#9824;</option>
+              <option value="h">&#9829;</option>
+              <option value="d">&#9830;</option>
+              <option value="c">&#9827;</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="field" style="margin-top:8px">
+        <textarea id="riverAction" placeholder="e.g. BB checks, Hero shoves 1800, BB calls"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="section">
+    <div class="section-title">Result</div>
+    <div class="row">
+      <div class="field">
+        <label>Result</label>
+        <select id="result">
+          <option value="Won">Won</option>
+          <option value="Lost">Lost</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Amount ($)</label>
+        <input type="number" id="resultAmount" placeholder="2600">
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>Villain's Hand (if shown)</label>
+        <input type="text" id="villainHand" placeholder="e.g. AA, KQs, unknown">
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>Notes / Lesson</label>
+        <textarea id="notes" placeholder="What did you learn from this hand?"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generate -->
+  <button class="btn btn-primary" onclick="saveHand()">Save Hand</button>
+
+  <div class="copy-toast" id="toast">Saved!</div>
+
+  <div class="output-area" id="outputArea">
+    <div class="section-title" style="margin-top:10px">Summary</div>
+    <div class="output-box" id="outputBox"></div>
+  </div>
+</div>
+
+<script>
+const suitSymbol = { s: '\u2660', h: '\u2665', d: '\u2666', c: '\u2663' };
+const suitName = { s: 'spades', h: 'hearts', d: 'diamonds', c: 'clubs' };
+
+function cardStr(rank, suit) {
+  if (!rank) return '';
+  return rank.toUpperCase() + suitSymbol[suit];
+}
+
+function generate() {
+  const data = {
+    gameType: document.getElementById('gameType').value,
+    location: document.getElementById('location').value,
+    sb: document.getElementById('sb').value,
+    bb: document.getElementById('bb').value,
+    straddle: document.getElementById('straddle').value,
+    heroPos: document.getElementById('heroPos').value,
+    villainPos: document.getElementById('villainPos').value,
+    heroStack: document.getElementById('heroStack').value,
+    villainStack: document.getElementById('villainStack').value,
+    holeCards: cardStr(document.getElementById('hc1r').value, document.getElementById('hc1s').value) +
+               ' ' + cardStr(document.getElementById('hc2r').value, document.getElementById('hc2s').value),
+    flop: [
+      cardStr(document.getElementById('f1r').value, document.getElementById('f1s').value),
+      cardStr(document.getElementById('f2r').value, document.getElementById('f2s').value),
+      cardStr(document.getElementById('f3r').value, document.getElementById('f3s').value)
+    ].filter(Boolean).join(' '),
+    turn: cardStr(document.getElementById('tr').value, document.getElementById('ts').value),
+    river: cardStr(document.getElementById('rr').value, document.getElementById('rs').value),
+    preflopAction: document.getElementById('preflopAction').value,
+    flopAction: document.getElementById('flopAction').value,
+    turnAction: document.getElementById('turnAction').value,
+    riverAction: document.getElementById('riverAction').value,
+    result: document.getElementById('result').value,
+    resultAmount: document.getElementById('resultAmount').value,
+    villainHand: document.getElementById('villainHand').value,
+    notes: document.getElementById('notes').value
+  };
+
+  const stakes = data.straddle
+    ? `${data.sb}/${data.bb} (straddle ${data.straddle})`
+    : `${data.sb}/${data.bb}`;
+
+  const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  let summary = `HAND — ${today}\n`;
+  summary += `${data.gameType} ${stakes} | ${data.location}\n`;
+  summary += `Hero: ${data.heroPos} ($${data.heroStack}) | Villain: ${data.villainPos} ($${data.villainStack})\n\n`;
+
+  summary += `HOLE CARDS: ${data.holeCards}\n\n`;
+
+  if (data.preflopAction) {
+    summary += `PREFLOP:\n${data.preflopAction}\n\n`;
+  }
+
+  if (data.flop) {
+    summary += `FLOP: ${data.flop}\n`;
+    if (data.flopAction) summary += `${data.flopAction}\n`;
+    summary += '\n';
+  }
+
+  if (data.turn) {
+    summary += `TURN: ${data.turn}\n`;
+    if (data.turnAction) summary += `${data.turnAction}\n`;
+    summary += '\n';
+  }
+
+  if (data.river) {
+    summary += `RIVER: ${data.river}\n`;
+    if (data.riverAction) summary += `${data.riverAction}\n`;
+    summary += '\n';
+  }
+
+  const sign = data.result === 'Lost' ? '-' : '+';
+  summary += `RESULT: ${data.result} ${sign}$${data.resultAmount}`;
+  if (data.villainHand) summary += ` | Villain: ${data.villainHand}`;
+  summary += '\n';
+
+  if (data.notes) {
+    summary += `\nNOTES:\n${data.notes}\n`;
+  }
+
+  document.getElementById('outputBox').textContent = summary;
+  document.getElementById('outputArea').classList.add('visible');
+}
+
+function saveHand() {
+  generate();
+  const text = document.getElementById('outputBox').textContent;
+
+  // Save to localStorage
+  const hands = JSON.parse(localStorage.getItem('pokerHands') || '[]');
+  hands.unshift({
+    id: Date.now(),
+    summary: text,
+    date: new Date().toISOString(),
+    result: document.getElementById('result').value,
+    amount: document.getElementById('resultAmount').value
+  });
+  localStorage.setItem('pokerHands', JSON.stringify(hands));
+
+  const toast = document.getElementById('toast');
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+</script>
+</body>
+</html>
