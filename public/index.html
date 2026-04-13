@@ -60,6 +60,14 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 .toast.show{display:block;animation:toast-in .3s ease;}
 @keyframes toast-in{from{opacity:0;transform:translateX(-50%) translateY(10px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
 
+.recap-quiz-prompt{text-align:center;padding:16px;margin-top:12px;background:rgba(255,215,0,.08);border:1px dashed var(--gold);border-radius:10px;color:var(--gold);font-size:.9rem;font-weight:700;}
+
+.quiz-options{display:flex;flex-direction:column;gap:8px;}
+.quiz-option{display:block;width:100%;text-align:left;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;font-family:inherit;}
+.quiz-option:hover{border-color:var(--gold);background:rgba(255,215,0,.05);}
+.qo-title{display:block;font-size:.85rem;font-weight:600;color:var(--text);}
+.qo-desc{display:block;font-size:.7rem;color:var(--dim);margin-top:2px;}
+
 .btn-mic{background:none;border:2px solid var(--red);color:var(--red);font-size:1.1rem;padding:4px 10px;border-radius:50%;cursor:pointer;transition:all .2s;line-height:1;}
 .btn-mic:hover,.btn-mic.recording{background:var(--red);color:#fff;box-shadow:0 0 12px rgba(248,113,113,.5);}
 .btn-mic.recording{animation:pulse-mic 1.2s infinite;}
@@ -315,9 +323,37 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
         <button onclick="saveHandAs()">Save As...</button>
         <button onclick="openLoadModal()">Load Hand</button>
         <div class="menu-divider"></div>
-        <button onclick="generateRecap()">Generate Recap</button>
+        <button onclick="generateRecap('full')">Full Recap</button>
+        <button onclick="openQuizRecap()">Quiz Recap...</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Quiz recap picker -->
+<div class="save-overlay" id="quizOverlay">
+  <div class="save-modal" style="max-width:360px;">
+    <h2 style="color:var(--gold);font-size:1rem;margin-bottom:4px;">Quiz Recap</h2>
+    <p style="font-size:.75rem;color:var(--dim);margin-bottom:14px;">Pick where to stop — share as a question, reveal the answer later.</p>
+    <div class="quiz-options" id="quizOptions">
+      <button class="quiz-option" onclick="generateRecap('after-preflop')">
+        <span class="qo-title">After Preflop</span>
+        <span class="qo-desc">What would you do on the flop?</span>
+      </button>
+      <button class="quiz-option" onclick="generateRecap('after-flop')">
+        <span class="qo-title">After Flop Action</span>
+        <span class="qo-desc">What's your turn play?</span>
+      </button>
+      <button class="quiz-option" onclick="generateRecap('after-turn')">
+        <span class="qo-title">After Turn Action</span>
+        <span class="qo-desc">River decision?</span>
+      </button>
+      <button class="quiz-option" onclick="generateRecap('before-showdown')">
+        <span class="qo-title">Before Showdown</span>
+        <span class="qo-desc">What did villain have?</span>
+      </button>
+    </div>
+    <button class="load-close" style="margin-top:12px;" onclick="document.getElementById('quizOverlay').classList.remove('active')">Cancel</button>
   </div>
 </div>
 
@@ -1060,21 +1096,14 @@ function getActiveSeats() {
 function renderActivePlayers() {
   const container = document.getElementById('activePlayers');
   const active = getActiveSeats();
-  const bb = getBBSize();
   container.innerHTML = '';
   active.forEach(({seatIdx, folded}) => {
     const s = seats[seatIdx];
     const pos = getPositionForSeat(seatIdx);
     const name = s.isHero ? 'Hero' : s.name;
-    const remaining = getRemainingStack(seatIdx);
-    let stackInfo = '';
-    if(remaining !== null && remaining >= 0) {
-      const bbs = Math.round(remaining / bb);
-      stackInfo = `<br><span style="font-size:.55rem;color:var(--gold);">$${remaining} (${bbs}bb)</span>`;
-    }
     const chip = document.createElement('div');
     chip.className = 'player-chip' + (folded ? ' folded' : '') + (seatIdx === actingPlayerIdx ? ' acting' : '');
-    chip.innerHTML = `<span class="chip-pos">${pos}</span> ${name}${stackInfo}`;
+    chip.innerHTML = `<span class="chip-pos">${pos}</span> ${name}`;
     if(!folded) {
       chip.onclick = () => selectActingPlayer(seatIdx);
     }
@@ -1150,38 +1179,10 @@ function renderTimeline() {
     const label = a.type === 'allin' ? 'ALL-IN' : a.type.charAt(0).toUpperCase() + a.type.slice(1);
     const div = document.createElement('div');
     div.className = 'timeline-entry';
-    // Calculate remaining stack after this action
-    let stackAfter = '';
-    const startStack = parseFloat(seats[a.seatIdx]?.stack) || 0;
-    if(startStack > 0) {
-      let totalInv = 0;
-      const allStreets = ['preflop','flop','turn','river'];
-      for(const st of allStreets) {
-        let streetInv = 0;
-        for(let j = 0; j < actions[st].length; j++) {
-          const act = actions[st][j];
-          if(act.seatIdx === a.seatIdx) {
-            const amt = parseFloat(act.amount) || 0;
-            if(act.type === 'call' && amt === 0) {
-              streetInv = getLastBetBeforeAction(st, act) || streetInv;
-            } else if(amt > 0) {
-              streetInv = Math.max(streetInv, amt);
-            }
-          }
-          if(st === currentStreet && j === i) break;
-        }
-        totalInv += streetInv;
-        if(st === currentStreet) break;
-      }
-      const rem = Math.max(0, Math.round(startStack - totalInv));
-      const bbs = Math.round(rem / getBBSize());
-      stackAfter = `<span style="font-size:.55rem;color:var(--dim);margin-left:4px;">$${rem} / ${bbs}bb</span>`;
-    }
     div.innerHTML = `
       <span class="timeline-player">${a.position} ${a.playerName}</span>
       <span class="timeline-action" style="color:${actionColors[a.type]}">${label}</span>
       ${a.amount ? `<span class="timeline-amount">$${a.amount}</span>` : ''}
-      ${stackAfter}
       <button class="timeline-delete" onclick="event.stopPropagation();deleteAction('${currentStreet}',${i})">&times;</button>
     `;
     div.onclick = () => openEditAction(currentStreet, i);
@@ -1269,57 +1270,36 @@ function deleteAction(street, idx) {
   updatePotDisplay();
 }
 
-function getBBSize() {
-  const straddle = parseFloat(document.getElementById('straddle').value) || 0;
-  if(straddle > 0) return straddle;
-  const blindsStr = document.getElementById('blinds').value;
-  const parts = blindsStr.split('/');
-  return parseFloat(parts[1]) || 2;
-}
-
 function getRemainingStack(seatIdx) {
   const startStack = parseFloat(seats[seatIdx].stack) || 0;
-  if (startStack === 0) return null;
+  if (startStack === 0) return 0;
   let totalInvested = 0;
 
-  // In poker, bet/raise/call/allin amounts represent the TOTAL commitment for that action.
-  // Per street, a player's investment is their LAST action amount (the highest they committed to).
-  // E.g. Hero bets $100, then calls a raise to $410 → Hero put in $410 that street (not $510).
+  // Sum all amounts this player has put in across all streets up to current
   const streetOrder = ['preflop', 'flop', 'turn', 'river'];
   const currentStreetIdx = streetOrder.indexOf(currentStreet);
 
   for (let si = 0; si <= currentStreetIdx; si++) {
     const st = streetOrder[si];
-    let streetInvested = 0;
     actions[st].forEach(a => {
-      if (a.seatIdx === seatIdx) {
-        const amt = parseFloat(a.amount) || 0;
-        if (a.type === 'call' && amt === 0) {
-          // Call with no amount: match the last bet/raise
-          const lastBet = getLastBetBeforeAction(st, a);
-          streetInvested = lastBet || streetInvested;
-        } else if (amt > 0) {
-          // For bet/raise/call/allin: this is total commitment this street
-          streetInvested = Math.max(streetInvested, amt);
-        }
+      if (a.seatIdx === seatIdx && a.amount) {
+        totalInvested += parseFloat(a.amount) || 0;
       }
     });
-    totalInvested += streetInvested;
   }
+
+  // Also account for blinds/straddle if this player is SB, BB, or straddle
+  const pos = getPositionForSeat(seatIdx);
+  const blindsStr = document.getElementById('blinds').value;
+  const parts = blindsStr.split('/');
+  if (pos === 'SB') totalInvested += parseFloat(parts[0]) || 0;
+  if (pos === 'BB') totalInvested += parseFloat(parts[1]) || 0;
+  const straddle = parseFloat(document.getElementById('straddle').value) || 0;
+  // Straddle is typically UTG or the position after BB
+  // For simplicity, if there's a straddle and this is the first position after BB, add it
+  // Actually, straddle is posted by specific seat — skip auto-adding for now
 
   return Math.max(0, Math.round(startStack - totalInvested));
-}
-
-function getLastBetBeforeAction(street, targetAction) {
-  const streetActions = actions[street];
-  let lastBet = 0;
-  for (const a of streetActions) {
-    if (a === targetAction) break;
-    if (['bet', 'raise', 'allin'].includes(a.type) && a.amount) {
-      lastBet = parseFloat(a.amount) || 0;
-    }
-  }
-  return lastBet;
 }
 
 function calculatePot() {
@@ -1390,123 +1370,368 @@ function toggleTag(el) {
 }
 
 // ==================== RECAP ====================
-function generateRecap() {
+function openQuizRecap() {
+  document.getElementById('dropdownMenu').classList.remove('open');
+  document.getElementById('quizOverlay').classList.add('active');
+}
+
+function generateRecap(mode) {
+  document.getElementById('quizOverlay').classList.remove('active');
+  document.getElementById('dropdownMenu').classList.remove('open');
   const overlay = document.getElementById('recapOverlay');
   const content = document.getElementById('recapContent');
 
-  const heroSeat = seats.find(s => s.isHero);
+  // ── Gather hand info ──
   const heroIdx = seats.findIndex(s => s.isHero);
+  const heroSeat = heroIdx >= 0 ? seats[heroIdx] : null;
   const heroPos = heroIdx >= 0 ? getPositionForSeat(heroIdx) : '?';
-  const blinds = document.getElementById('blinds').value || '?/?';
+  const heroStack = heroSeat ? (parseFloat(heroSeat.stack) || 0) : 0;
+  const blindsStr = document.getElementById('blinds').value || '?/?';
+  const blindsParts = blindsStr.split('/');
+  const sbSize = parseFloat(blindsParts[0]) || 0;
+  const bbSize = parseFloat(blindsParts[1]) || parseFloat(blindsParts[0]) || 1;
+  const straddleVal = parseFloat(document.getElementById('straddle').value) || 0;
+  const effectiveBB = straddleVal > 0 ? straddleVal : bbSize;
   const gameType = document.getElementById('gameType').value;
-  const pot = calculatePot();
   const notes = document.getElementById('handNotes').value;
+  const streetOrder = ['preflop', 'flop', 'turn', 'river'];
 
-  function cardHTML(c, small) {
-    if(!c) return '';
-    const w = small ? 40 : 44;
-    const h = small ? 56 : 62;
+  // ── Villains (seats with cards that aren't hero) ──
+  const villains = [];
+  seats.forEach((s, i) => {
+    if (i !== heroIdx && (s.cards[0] || s.cards[1]) && (s.name || !s.isHero)) {
+      villains.push({ idx: i, seat: s, pos: getPositionForSeat(i), name: s.name || `Seat ${i + 1}`, stack: parseFloat(s.stack) || 0 });
+    }
+  });
+
+  // ── Effective stack & SPR ──
+  const allStacks = [heroStack, ...villains.map(v => v.stack)].filter(s => s > 0);
+  const effectiveStack = allStacks.length > 1 ? Math.min(...allStacks) : (allStacks[0] || 0);
+
+  // Pot at start of each street
+  function potAtStreetStart(streetName) {
+    let pot = sbSize + bbSize + straddleVal;
+    for (const st of streetOrder) {
+      if (st === streetName) break;
+      actions[st].forEach(a => {
+        if (a.amount && ['bet', 'raise', 'call', 'allin'].includes(a.type)) {
+          pot += parseFloat(a.amount) || 0;
+        }
+      });
+    }
+    return pot;
+  }
+
+  // Running pot tracker for inline display
+  function runningPotAfterAction(streetName, actionIdx) {
+    let pot = potAtStreetStart(streetName);
+    for (let i = 0; i <= actionIdx; i++) {
+      const a = actions[streetName][i];
+      if (a && a.amount && ['bet', 'raise', 'call', 'allin'].includes(a.type)) {
+        pot += parseFloat(a.amount) || 0;
+      }
+    }
+    return pot;
+  }
+
+  // Remaining stack for a player at start of a given street
+  function stackAtStreetStart(seatIdx, streetName) {
+    const startStack = parseFloat(seats[seatIdx].stack) || 0;
+    let invested = 0;
+    const pos = getPositionForSeat(seatIdx);
+    if (pos === 'SB') invested += sbSize;
+    if (pos === 'BB') invested += bbSize;
+    for (const st of streetOrder) {
+      if (st === streetName) break;
+      actions[st].forEach(a => {
+        if (a.seatIdx === seatIdx && a.amount) invested += parseFloat(a.amount) || 0;
+      });
+    }
+    return Math.max(0, startStack - invested);
+  }
+
+  function sprAtStreet(streetName) {
+    const pot = potAtStreetStart(streetName);
+    if (pot === 0) return Infinity;
+    const stacks = [heroIdx, ...villains.map(v => v.idx)]
+      .filter(i => i >= 0)
+      .map(i => stackAtStreetStart(i, streetName))
+      .filter(s => s > 0);
+    if (stacks.length === 0) return 0;
+    return Math.min(...stacks) / pot;
+  }
+
+  // ── Card rendering helpers ──
+  function cardHTML(c, size) {
+    if (!c) return '';
+    const w = size === 'lg' ? 52 : size === 'sm' ? 36 : 44;
+    const h = size === 'lg' ? 72 : size === 'sm' ? 50 : 62;
     return `<div class="card ${c.color}" style="width:${w}px;height:${h}px;cursor:default;"><span class="rank">${c.rank}</span><span class="suit">${c.suit}</span></div>`;
   }
 
-  // Hero cards
-  let heroCardsHTML = '';
-  if(heroSeat && (heroSeat.cards[0] || heroSeat.cards[1])) {
-    heroCardsHTML = `<div class="recap-cards-group">${heroSeat.cards.map(c => cardHTML(c)).join('')}</div>`;
+  function faceDownCard() {
+    return `<div class="card" style="width:44px;height:62px;cursor:default;background:linear-gradient(135deg,#2a3550,#1e2a40);border:1px solid #3a4a6a;display:flex;align-items:center;justify-content:center;"><span style="color:#5a6a8a;font-size:1.2rem;">?</span></div>`;
   }
 
-  // Villain cards
-  let villainCardsHTML = '';
-  seats.forEach((s, i) => {
-    if(i !== heroIdx && (s.cards[0] || s.cards[1]) && (s.name || !s.isHero)) {
-      const pos = getPositionForSeat(i);
-      const name = s.name || `Seat ${i+1}`;
-      villainCardsHTML += `
-        <span class="recap-vs">${name} (${pos})</span>
-        <div class="recap-cards-group">${s.cards.map(c => cardHTML(c)).join('')}</div>
+  function boardCardsHTML(upToStreet) {
+    let html = '';
+    board.flop.forEach(c => { if (c) html += cardHTML(c, 'sm'); });
+    if ((upToStreet === 'turn' || upToStreet === 'river') && board.turn[0]) {
+      html += `<div style="width:1px;height:36px;background:#3a4a6a;margin:0 6px;"></div>`;
+      html += cardHTML(board.turn[0], 'sm');
+    }
+    if (upToStreet === 'river' && board.river[0]) {
+      html += `<div style="width:1px;height:36px;background:#3a4a6a;margin:0 6px;"></div>`;
+      html += cardHTML(board.river[0], 'sm');
+    }
+    return html;
+  }
+
+  // ── Formatting helpers ──
+  function fmt$(n) { return '$' + Math.round(n).toLocaleString(); }
+
+  function actionColor(type) {
+    switch (type) {
+      case 'bet': case 'raise': return '#fbbf24';
+      case 'call': return '#60a5fa';
+      case 'check': return '#8b9dc3';
+      case 'fold': return '#f87171';
+      case 'allin': return '#fbbf24';
+      default: return '#e0e0e0';
+    }
+  }
+
+  function actionLabel(a, pot) {
+    const color = actionColor(a.type);
+    const isFold = a.type === 'fold';
+    const textDecor = isFold ? 'text-decoration:line-through;' : '';
+    let label = a.type === 'allin' ? 'ALL-IN' : a.type.charAt(0).toUpperCase() + a.type.slice(1);
+    let detail = '';
+    if (a.amount) {
+      const amt = parseFloat(a.amount) || 0;
+      detail = ` ${fmt$(amt)}`;
+      if ((a.type === 'bet' || a.type === 'raise' || a.type === 'allin') && pot > 0) {
+        detail += ` <span style="color:#8b9dc3;font-size:0.8em;">(into ${fmt$(pot)} pot)</span>`;
+      }
+    }
+    return `<span style="color:${color};font-weight:600;${textDecor}">${label}</span>${detail}`;
+  }
+
+  // ── HEADER ──
+  const straddleText = straddleVal > 0 ? ` | Straddle ${fmt$(straddleVal)}` : '';
+  const initialPot = potAtStreetStart('preflop');
+  const initialSPR = initialPot > 0 ? (effectiveStack / initialPot) : 0;
+
+  let headerHTML = `
+    <div class="recap-header" style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px;">
+      <h2 style="margin:0 0 6px 0;font-size:1.3rem;color:var(--gold);">Hand Recap</h2>
+      <div style="color:var(--muted);font-size:0.85rem;">
+        ${gameType.charAt(0).toUpperCase() + gameType.slice(1)} | ${blindsStr}${straddleText} | ${tableSize}-max
+      </div>
+    </div>
+  `;
+
+  // ── STACK INFO ──
+  let stackHTML = `
+    <div style="display:flex;flex-wrap:wrap;gap:10px 20px;margin-bottom:14px;font-size:0.85rem;">
+      <div><span style="color:var(--muted);">Hero (${heroPos}):</span> <span style="color:var(--text);font-weight:600;">${fmt$(heroStack)}</span></div>
+      ${villains.map(v => `<div><span style="color:var(--muted);">${v.name} (${v.pos}):</span> <span style="color:var(--text);font-weight:600;">${fmt$(v.stack)}</span></div>`).join('')}
+      <div><span style="color:var(--muted);">Effective:</span> <span style="color:var(--gold);font-weight:600;">${fmt$(effectiveStack)}</span></div>
+      <div><span style="color:var(--muted);">SPR:</span> <span style="color:var(--gold);font-weight:600;">${initialSPR === Infinity ? '-' : initialSPR.toFixed(1)}</span></div>
+    </div>
+  `;
+
+  // ── HERO CARDS ──
+  let heroCardsHTML = '';
+  if (heroSeat && (heroSeat.cards[0] || heroSeat.cards[1])) {
+    heroCardsHTML = `
+      <div style="margin-bottom:16px;">
+        <div style="color:var(--muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Hero Hand</div>
+        <div style="display:flex;gap:6px;">${heroSeat.cards.map(c => cardHTML(c, 'lg')).join('')}</div>
+      </div>
+    `;
+  }
+
+  // ── STREET SECTIONS ──
+  let streetsHTML = '';
+  streetOrder.forEach(st => {
+    const hasActions = actions[st].length > 0;
+    const hasBoard = st === 'flop' ? board.flop.some(c => c) : st === 'turn' ? !!board.turn[0] : st === 'river' ? !!board.river[0] : false;
+
+    if (!hasActions && (st === 'preflop' || !hasBoard)) return;
+
+    const pot = potAtStreetStart(st);
+    const spr = sprAtStreet(st);
+    const streetLabel = st.charAt(0).toUpperCase() + st.slice(1);
+
+    // Street header with divider
+    streetsHTML += `
+      <div style="margin-top:18px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <div style="font-size:1.1rem;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:1px;">${streetLabel}</div>
+          <div style="flex:1;height:1px;background:var(--border);"></div>
+          <div style="font-size:0.8rem;color:var(--muted);">SPR ${spr === Infinity ? '-' : spr.toFixed(1)}</div>
+        </div>
+    `;
+
+    // Board cards for post-flop streets
+    if (st !== 'preflop' && hasBoard) {
+      streetsHTML += `
+        <div style="display:flex;gap:4px;align-items:center;margin-bottom:8px;">
+          ${boardCardsHTML(st)}
+        </div>
       `;
     }
-  });
 
-  // Board
-  let boardHTML = '';
-  const allBoard = [...board.flop, ...board.turn, ...board.river].filter(Boolean);
-  if(allBoard.length > 0) {
-    boardHTML = '<div class="recap-board-label">Board</div><div class="recap-board-cards">';
-    board.flop.forEach(c => { if(c) boardHTML += cardHTML(c, true); });
-    if(board.turn[0]) {
-      boardHTML += '<div class="board-divider" style="width:1px;height:40px;background:#3a4a6a;margin:0 4px;"></div>';
-      boardHTML += cardHTML(board.turn[0], true);
-    }
-    if(board.river[0]) {
-      boardHTML += '<div class="board-divider" style="width:1px;height:40px;background:#3a4a6a;margin:0 4px;"></div>';
-      boardHTML += cardHTML(board.river[0], true);
-    }
-    boardHTML += '</div>';
-  }
-
-  // Street actions
-  let streetsHTML = '';
-  ['preflop','flop','turn','river'].forEach(st => {
-    if(actions[st].length === 0) return;
-    const actionsText = actions[st].map(a => {
-      const label = a.type === 'allin' ? 'ALL-IN' : a.type.charAt(0).toUpperCase() + a.type.slice(1);
-      return `<strong>${a.playerName}</strong> (${a.position}) ${label}${a.amount ? ' ' + a.amount : ''}`;
-    }).join(' &rarr; ');
+    // Pot display
     streetsHTML += `
-      <div class="recap-street">
-        <div class="recap-street-title">${st.charAt(0).toUpperCase() + st.slice(1)}</div>
-        <div class="recap-street-actions">${actionsText}</div>
-      </div>
+      <div style="color:var(--gold);font-weight:600;font-size:0.9rem;margin-bottom:10px;">Pot: ${fmt$(pot)}</div>
     `;
+
+    // Actions - one per line, grouped by player
+    if (hasActions) {
+      let runningPot = pot;
+      actions[st].forEach((a, ai) => {
+        const amt = parseFloat(a.amount) || 0;
+        const isHeroAction = a.seatIdx === heroIdx;
+        const potBeforeAction = runningPot;
+        if (amt && ['bet', 'raise', 'call', 'allin'].includes(a.type)) {
+          runningPot += amt;
+        }
+
+        const decisionBadge = isHeroAction ? `<span style="background:#2a3550;color:#60a5fa;font-size:0.65rem;padding:1px 6px;border-radius:3px;margin-left:6px;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;">Decision</span>` : '';
+        const playerColor = isHeroAction ? '#4ade80' : 'var(--text)';
+        const bgHighlight = isHeroAction ? 'background:rgba(74,222,128,0.04);border-left:2px solid rgba(74,222,128,0.3);padding-left:8px;' : 'padding-left:10px;';
+
+        streetsHTML += `
+          <div style="${bgHighlight}margin-bottom:4px;font-size:0.88rem;line-height:1.5;">
+            <span style="color:${playerColor};font-weight:600;">${a.playerName}</span>
+            <span style="color:var(--dim);font-size:0.8em;"> (${a.position})</span>
+            ${decisionBadge}
+            <div style="margin-left:2px;">
+              ${actionLabel(a, potBeforeAction)}
+              ${amt > 0 ? `<span style="color:var(--dim);font-size:0.78em;margin-left:6px;">[pot: ${fmt$(runningPot)}]</span>` : ''}
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    streetsHTML += `</div>`;
   });
 
-  // Tags
-  let tagsHTML = '';
-  if(activeTags.size > 0) {
-    const tagColors = {bluff:'#3b1f4a;color:#c084fc',cooler:'#3b2a1a;color:#fbbf24','hero fold':'#1a2a4a;color:#60a5fa','value bet':'#1a3a2a;color:#4ade80','slow play':'#3b1a3b;color:#e879f9','3-bet pot':'#3b2a1a;color:#fb923c'};
-    tagsHTML = '<div class="recap-tags">';
-    activeTags.forEach(tag => {
-      const style = tagColors[tag] || '#1a2a3a;color:#8b9dc3';
-      tagsHTML += `<span class="recap-tag" style="background:${style}">${tag}</span>`;
-    });
-    tagsHTML += '</div>';
-  }
+  // ── SHOWDOWN (villain reveal) ──
+  const hasVillainCards = villains.some(v => v.seat.cards[0] || v.seat.cards[1]);
+  let showdownHTML = '';
+  if (hasVillainCards) {
+    const villainCardsRevealed = villains.map(v => `
+      <div style="margin-bottom:8px;">
+        <span style="color:var(--muted);font-size:0.85rem;">${v.name} (${v.pos})</span>
+        <div style="display:flex;gap:4px;margin-top:4px;">${v.seat.cards.map(c => cardHTML(c)).join('')}</div>
+      </div>
+    `).join('');
 
-  // Result
-  let resultHTML = '';
-  if(handResult) {
-    const cls = handResult === 'won' ? 'won' : 'lost';
-    const color = handResult === 'won' ? 'var(--green)' : 'var(--red)';
-    resultHTML = `
-      <div class="recap-result ${cls}">
-        <div class="result-text" style="color:${color}">${handResult === 'won' ? 'Won' : 'Lost'}</div>
-        <div class="result-pot">Pot: ${pot}</div>
+    const villainFaceDown = villains.map(v => `
+      <div style="margin-bottom:8px;">
+        <span style="color:var(--muted);font-size:0.85rem;">${v.name} (${v.pos})</span>
+        <div style="display:flex;gap:4px;margin-top:4px;">${faceDownCard()}${faceDownCard()}</div>
+      </div>
+    `).join('');
+
+    // Result
+    const totalPot = calculatePot();
+    let resultInner = '';
+    if (handResult) {
+      const rColor = handResult === 'won' ? 'var(--green)' : 'var(--red)';
+      resultInner = `
+        <div style="margin-top:12px;text-align:center;">
+          <span style="color:${rColor};font-size:1.3rem;font-weight:700;">${handResult === 'won' ? 'WON' : 'LOST'}</span>
+          <span style="color:var(--muted);font-size:1rem;margin-left:8px;">Pot: ${fmt$(totalPot)}</span>
+        </div>
+      `;
+    }
+
+    // Villain range tags area
+    const rangeAreaHTML = `
+      <div class="recap-villain-range" style="margin-top:10px;display:none;">
+        <div style="color:var(--dim);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Villain Range Notes</div>
+        <div contenteditable="true" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:0.85rem;min-height:24px;outline:none;" placeholder="Sets, Overpairs, 87s..."></div>
+      </div>
+    `;
+
+    showdownHTML = `
+      <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <div style="font-size:1.1rem;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:1px;">Showdown</div>
+          <div style="flex:1;height:1px;background:var(--border);"></div>
+        </div>
+        <div id="recapVillainHidden">${villainFaceDown}
+          <button onclick="(function(btn){
+            btn.parentElement.style.display='none';
+            document.getElementById('recapVillainRevealed').style.display='block';
+          })(this)" style="margin-top:8px;background:linear-gradient(135deg,#2a3550,#1e2a40);border:1px solid var(--border);color:var(--gold);padding:8px 20px;border-radius:8px;cursor:pointer;font-size:0.9rem;font-weight:600;width:100%;transition:all 0.2s;">
+            Reveal Villain
+          </button>
+        </div>
+        <div id="recapVillainRevealed" style="display:none;">
+          ${villainCardsRevealed}
+          ${resultInner}
+          ${rangeAreaHTML}
+        </div>
+      </div>
+    `;
+  } else if (handResult) {
+    // No villain cards but there's a result
+    const totalPot = calculatePot();
+    const rColor = handResult === 'won' ? 'var(--green)' : 'var(--red)';
+    showdownHTML = `
+      <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border);text-align:center;">
+        <span style="color:${rColor};font-size:1.3rem;font-weight:700;">${handResult === 'won' ? 'WON' : 'LOST'}</span>
+        <span style="color:var(--muted);font-size:1rem;margin-left:8px;">Pot: ${fmt$(totalPot)}</span>
       </div>
     `;
   }
 
+  // ── TAGS ──
+  let tagsHTML = '';
+  if (activeTags.size > 0) {
+    const tagColors = {
+      bluff: 'background:#3b1f4a;color:#c084fc',
+      cooler: 'background:#3b2a1a;color:#fbbf24',
+      'hero fold': 'background:#1a2a4a;color:#60a5fa',
+      'value bet': 'background:#1a3a2a;color:#4ade80',
+      'slow play': 'background:#3b1a3b;color:#e879f9',
+      '3-bet pot': 'background:#3b2a1a;color:#fb923c'
+    };
+    tagsHTML = `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;">`;
+    activeTags.forEach(tag => {
+      const style = tagColors[tag] || 'background:#1a2a3a;color:#8b9dc3';
+      tagsHTML += `<span class="recap-tag" style="${style};padding:3px 10px;border-radius:12px;font-size:0.78rem;font-weight:600;">${tag}</span>`;
+    });
+    tagsHTML += `</div>`;
+  }
+
+  // ── NOTES ──
+  let notesHTML = '';
+  if (notes) {
+    notesHTML = `
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+        <div style="color:var(--dim);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Notes</div>
+        <div class="recap-notes" style="color:var(--text);font-size:0.88rem;line-height:1.5;white-space:pre-wrap;">${notes}</div>
+      </div>
+    `;
+  }
+
+  // ── ASSEMBLE ──
   content.innerHTML = `
-    <div class="recap-card">
-      <div class="recap-header">
-        <h2>Hand Recap</h2>
-        <div class="recap-meta">${gameType.charAt(0).toUpperCase() + gameType.slice(1)} | ${blinds} | ${tableSize}-max</div>
-      </div>
-
-      <div class="recap-positions">
-        <span class="recap-position">Hero: ${heroPos}</span>
-      </div>
-
-      <div class="recap-cards-row">
-        ${heroCardsHTML}
-        ${villainCardsHTML}
-      </div>
-
-      ${boardHTML}
+    <div class="recap-card" style="max-width:480px;margin:0 auto;padding:20px;">
+      ${headerHTML}
+      ${stackHTML}
+      ${heroCardsHTML}
       ${streetsHTML}
-      ${resultHTML}
+      ${showdownHTML}
       ${tagsHTML}
-      ${notes ? `<div class="recap-notes">${notes}</div>` : ''}
+      ${notesHTML}
     </div>
   `;
 
