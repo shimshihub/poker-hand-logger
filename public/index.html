@@ -24,6 +24,42 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 .btn-sm:hover,.btn-sm.active{border-color:var(--gold);color:var(--gold);}
 .btn-gold{background:linear-gradient(135deg,#ffd700,#ffaa00);color:#0a0e17;border:none;font-weight:700;padding:6px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:.75rem;}
 .btn-gold:hover{filter:brightness(1.1);}
+.menu-wrap{position:relative;}
+.dropdown-menu{display:none;position:absolute;top:100%;right:0;margin-top:6px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;min-width:160px;z-index:200;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.5);}
+.dropdown-menu.open{display:block;}
+.dropdown-menu button{display:block;width:100%;text-align:left;padding:11px 16px;background:none;border:none;color:var(--text);font-family:inherit;font-size:.82rem;font-weight:500;cursor:pointer;transition:background .15s;}
+.dropdown-menu button:hover{background:rgba(255,215,0,.1);}
+.menu-divider{height:1px;background:var(--border);margin:2px 0;}
+
+.load-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:1000;align-items:center;justify-content:center;}
+.load-overlay.active{display:flex;}
+.load-modal{background:var(--card-bg);border:1px solid var(--border);border-radius:16px;padding:20px;width:92%;max-width:380px;max-height:80vh;display:flex;flex-direction:column;}
+.load-modal h2{font-size:1rem;font-weight:700;color:var(--gold);margin-bottom:12px;}
+.load-list{flex:1;overflow-y:auto;margin-bottom:12px;}
+.load-item{padding:12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer;transition:all .2s;}
+.load-item:hover{border-color:var(--gold);background:rgba(255,215,0,.05);}
+.load-item .li-name{font-weight:600;color:var(--text);font-size:.85rem;}
+.load-item .li-date{font-size:.7rem;color:var(--dim);margin-top:2px;}
+.load-item .li-info{font-size:.72rem;color:var(--muted);margin-top:4px;}
+.load-item-actions{display:flex;gap:8px;margin-top:6px;}
+.load-item-actions button{font-size:.65rem;padding:3px 8px;border-radius:4px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-family:inherit;}
+.load-item-actions .delete-btn{border-color:#6b2d2d;color:var(--red);}
+.load-empty{text-align:center;color:var(--dim);padding:24px;font-size:.85rem;}
+.load-close{background:none;border:1px solid var(--border);color:var(--muted);padding:8px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:.82rem;font-weight:600;width:100%;}
+
+.save-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:1000;align-items:center;justify-content:center;}
+.save-overlay.active{display:flex;}
+.save-modal{background:var(--card-bg);border:1px solid var(--border);border-radius:16px;padding:20px;width:92%;max-width:340px;}
+.save-modal h2{font-size:1rem;font-weight:700;color:var(--gold);margin-bottom:12px;}
+.save-modal input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:inherit;font-size:.85rem;margin-bottom:12px;}
+.save-modal-actions{display:flex;gap:8px;}
+.save-modal-actions button{flex:1;padding:10px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:.82rem;font-weight:600;}
+.save-cancel{background:none;border:1px solid var(--border);color:var(--muted);}
+.save-confirm{background:var(--gold);border:none;color:#0a0e17;font-weight:700;}
+.toast{display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--green);color:#0a0e17;padding:10px 20px;border-radius:8px;font-size:.82rem;font-weight:600;z-index:2000;box-shadow:0 4px 12px rgba(0,0,0,.3);}
+.toast.show{display:block;animation:toast-in .3s ease;}
+@keyframes toast-in{from{opacity:0;transform:translateX(-50%) translateY(10px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+
 .btn-mic{background:none;border:2px solid var(--red);color:var(--red);font-size:1.1rem;padding:4px 10px;border-radius:50%;cursor:pointer;transition:all .2s;line-height:1;}
 .btn-mic:hover,.btn-mic.recording{background:var(--red);color:#fff;box-shadow:0 0 12px rgba(248,113,113,.5);}
 .btn-mic.recording{animation:pulse-mic 1.2s infinite;}
@@ -140,6 +176,13 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 .street-tab{flex:1;text-align:center;padding:8px 0;font-size:.7rem;font-weight:600;color:var(--dim);cursor:pointer;border-radius:6px;background:var(--card-bg);border:1px solid var(--border);transition:all .2s;text-transform:uppercase;}
 .street-tab.active{border-color:var(--gold);color:var(--gold);background:#1a1f2e;}
 .street-tab .street-pot{font-size:.55rem;color:var(--dim);display:block;margin-top:2px;}
+.action-board{display:none;justify-content:center;gap:4px;padding:8px 0;align-items:center;}
+.action-board.visible{display:flex;}
+.action-board .mini-board-card{width:36px;height:50px;border-radius:5px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:.7rem;box-shadow:0 1px 4px rgba(0,0,0,.3);}
+.action-board .mini-board-card.red{color:#dc2626;}
+.action-board .mini-board-card.black{color:#1a1a1a;}
+.action-board .mini-board-card.empty{background:rgba(42,53,80,.3);border:1px dashed var(--border);}
+.action-board .mini-divider{width:1px;height:30px;background:var(--border);margin:0 2px;}
 
 .active-players{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
 .player-chip{display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;background:var(--card-bg);border:1px solid var(--border);cursor:pointer;transition:all .2s;font-size:.7rem;font-weight:600;color:var(--muted);}
@@ -161,12 +204,30 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 .amount-input.visible{display:block;}
 
 .action-timeline{margin-top:8px;}
-.timeline-entry{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:.7rem;border-bottom:1px solid rgba(42,53,80,.3);}
+.timeline-entry{display:flex;align-items:center;gap:8px;padding:8px 6px;font-size:.78rem;border-bottom:1px solid rgba(42,53,80,.3);cursor:pointer;border-radius:6px;transition:background .15s;}
+.timeline-entry:hover{background:rgba(255,215,0,.05);}
+.timeline-entry:active{background:rgba(255,215,0,.1);}
 .timeline-player{font-weight:600;color:var(--muted);min-width:50px;}
 .timeline-action{font-weight:600;}
 .timeline-amount{color:var(--gold);font-weight:600;}
-.timeline-delete{background:none;border:none;color:var(--dim);cursor:pointer;font-size:.65rem;margin-left:auto;padding:2px 6px;}
+.timeline-delete{background:none;border:none;color:var(--dim);cursor:pointer;font-size:.75rem;margin-left:auto;padding:4px 8px;}
 .timeline-delete:hover{color:var(--red);}
+.timeline-edit-hint{font-size:.6rem;color:var(--dim);margin-left:4px;}
+
+.edit-action-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:1000;align-items:flex-end;justify-content:center;}
+.edit-action-overlay.active{display:flex;}
+.edit-action-modal{background:var(--card-bg);border:1px solid var(--border);border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:500px;}
+.edit-action-modal h3{font-size:.9rem;font-weight:700;color:var(--gold);margin-bottom:14px;}
+.edit-action-types{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+.edit-action-types button{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--card-bg);color:var(--muted);cursor:pointer;font-family:inherit;font-size:.8rem;font-weight:600;transition:all .15s;}
+.edit-action-types button.active{border-color:var(--gold);color:var(--gold);background:rgba(255,215,0,.1);}
+.edit-amount-row{display:flex;gap:8px;align-items:center;margin-bottom:16px;}
+.edit-amount-row label{font-size:.75rem;color:var(--dim);font-weight:600;}
+.edit-amount-row input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:inherit;font-size:.9rem;}
+.edit-action-btns{display:flex;gap:8px;}
+.edit-action-btns button{flex:1;padding:11px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:.82rem;font-weight:600;}
+.edit-save-btn{background:var(--gold);border:none;color:#0a0e17;font-weight:700;}
+.edit-cancel-btn{background:none;border:1px solid var(--border);color:var(--muted);}
 
 /* ---- RESULT SECTION ---- */
 .result-section{padding:12px;}
@@ -246,9 +307,66 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
       <option value="9">9-max</option>
     </select>
     <button class="btn-mic" id="micBtn" onclick="toggleVoiceRecording()">&#127908;</button>
-    <button class="btn-gold" onclick="generateRecap()">Recap</button>
+    <div class="menu-wrap">
+      <button class="btn-sm" onclick="toggleMenu()">&#9776;</button>
+      <div class="dropdown-menu" id="dropdownMenu">
+        <button onclick="newHand()">New Hand</button>
+        <button onclick="saveHand()">Save</button>
+        <button onclick="saveHandAs()">Save As...</button>
+        <button onclick="openLoadModal()">Load Hand</button>
+        <div class="menu-divider"></div>
+        <button onclick="generateRecap()">Generate Recap</button>
+      </div>
+    </div>
   </div>
 </div>
+
+<!-- Edit action modal -->
+<div class="edit-action-overlay" id="editActionOverlay">
+  <div class="edit-action-modal">
+    <h3 id="editActionTitle">Edit Action</h3>
+    <div class="edit-action-types" id="editActionTypes">
+      <button onclick="setEditAction('fold')">Fold</button>
+      <button onclick="setEditAction('check')">Check</button>
+      <button onclick="setEditAction('call')">Call</button>
+      <button onclick="setEditAction('bet')">Bet</button>
+      <button onclick="setEditAction('raise')">Raise</button>
+      <button onclick="setEditAction('allin')">All-in</button>
+    </div>
+    <div class="edit-amount-row" id="editAmountRow">
+      <label>Amount $</label>
+      <input type="number" id="editAmountInput" placeholder="0">
+    </div>
+    <div class="edit-action-btns">
+      <button class="edit-cancel-btn" onclick="closeEditAction()">Cancel</button>
+      <button class="edit-save-btn" onclick="confirmEditAction()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Save As modal -->
+<div class="save-overlay" id="saveOverlay">
+  <div class="save-modal">
+    <h2>Save Hand As</h2>
+    <input type="text" id="saveNameInput" placeholder="Hand name (e.g. ATs vs BB at Lucky Chances)">
+    <div class="save-modal-actions">
+      <button class="save-cancel" onclick="closeSaveModal()">Cancel</button>
+      <button class="save-confirm" onclick="confirmSaveAs()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Load hand modal -->
+<div class="load-overlay" id="loadOverlay">
+  <div class="load-modal">
+    <h2>Load Hand</h2>
+    <div class="load-list" id="loadList"></div>
+    <button class="load-close" onclick="closeLoadModal()">Close</button>
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div class="toast" id="toast"></div>
 
 <!-- Voice recording overlay -->
 <div class="voice-overlay" id="voiceOverlay">
@@ -371,6 +489,9 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
       <div class="street-tab" data-street="river" onclick="switchStreet('river')">River</div>
     </div>
 
+    <!-- Board display in action tab -->
+    <div class="action-board" id="actionBoard"></div>
+
     <div class="active-players" id="activePlayers"></div>
 
     <div class="action-buttons" id="actionButtons">
@@ -413,9 +534,6 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
       <button class="tag-btn" data-tag="set mine" onclick="toggleTag(this)">Set Mine</button>
       <button class="tag-btn" data-tag="draw" onclick="toggleTag(this)">Draw</button>
     </div>
-
-    <div style="font-size:.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;">Showdown — Player Hands</div>
-    <div id="showdownSection"></div>
 
     <div style="font-size:.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;">Notes</div>
     <textarea class="notes-field" id="handNotes" placeholder="What happened? What did you learn?"></textarea>
@@ -646,11 +764,6 @@ function moveDealer() {
 function selectSeat(idx) {
   selectedSeatIdx = idx;
   const s = seats[idx];
-  // Auto-name as villain if hero exists and this seat has no name
-  if(!s.name && !s.isHero && seats.some(x => x.isHero)) {
-    const villainCount = seats.filter((x,i) => i !== idx && !x.isHero && x.name && x.name.match(/^(Villain|V\d)/)).length;
-    s.name = villainCount === 0 ? 'Villain' : `V${villainCount + 1}`;
-  }
   document.getElementById('seatPanel').style.display = 'block';
   document.getElementById('seatPanelTitle').textContent = `Seat ${idx+1} (${getPositionForSeat(idx)})`;
   document.getElementById('seatName').value = s.name;
@@ -682,7 +795,6 @@ function toggleHero() {
   // Clear other hero
   seats.forEach((s,i) => { if(i !== selectedSeatIdx) s.isHero = false; });
   seats[selectedSeatIdx].isHero = !seats[selectedSeatIdx].isHero;
-  if(seats[selectedSeatIdx].isHero) seats[selectedSeatIdx].name = 'Hero';
   document.getElementById('heroBtn').classList.toggle('active', seats[selectedSeatIdx].isHero);
   renderTable();
 }
@@ -828,23 +940,11 @@ function confirmCardPicker() {
       board.river[0] = parseCardKey(cardPickerSelection[0]);
       usedCards.add(cardPickerSelection[0]);
     }
-  } else if(cardPickerMode === 'showdown' && showdownPickerSeatIdx !== null) {
-    const old = seats[showdownPickerSeatIdx].cards[cardPickerSlot];
-    if(old) usedCards.delete(old.rank + old.suit);
-    if(cardPickerSelection[0]) {
-      const parsed = parseCardKey(cardPickerSelection[0]);
-      seats[showdownPickerSeatIdx].cards[cardPickerSlot] = parsed;
-      usedCards.add(cardPickerSelection[0]);
-    } else {
-      seats[showdownPickerSeatIdx].cards[cardPickerSlot] = null;
-    }
-    showdownPickerSeatIdx = null;
   }
 
   closeCardPicker();
   renderTable();
   renderBoard();
-  if(document.getElementById('tab-result').classList.contains('active')) renderShowdown();
 }
 
 function closeCardPicker() {
@@ -890,9 +990,42 @@ function renderBoard() {
 }
 
 // ==================== STREET ACTIONS ====================
+function renderActionBoard() {
+  const container = document.getElementById('actionBoard');
+  if (currentStreet === 'preflop') {
+    container.classList.remove('visible');
+    container.innerHTML = '';
+    return;
+  }
+
+  container.classList.add('visible');
+  let html = '';
+
+  function cardHtml(c) {
+    if (!c) return '<div class="mini-board-card empty"></div>';
+    return `<div class="mini-board-card ${c.color}"><span>${c.rank}</span><span>${c.suit}</span></div>`;
+  }
+
+  // Always show flop
+  html += cardHtml(board.flop[0]) + cardHtml(board.flop[1]) + cardHtml(board.flop[2]);
+
+  if (currentStreet === 'turn' || currentStreet === 'river') {
+    html += '<div class="mini-divider"></div>';
+    html += cardHtml(board.turn[0]);
+  }
+
+  if (currentStreet === 'river') {
+    html += '<div class="mini-divider"></div>';
+    html += cardHtml(board.river[0]);
+  }
+
+  container.innerHTML = html;
+}
+
 function switchStreet(street) {
   currentStreet = street;
   document.querySelectorAll('.street-tab').forEach(t => t.classList.toggle('active', t.dataset.street === street));
+  renderActionBoard();
   actingPlayerIdx = null;
   document.getElementById('actionButtons').classList.remove('visible');
   document.getElementById('actionAmount').classList.remove('visible');
@@ -923,17 +1056,51 @@ function getActiveSeats() {
   return result;
 }
 
+function getBBSize() {
+  const blindsStr = document.getElementById('blinds').value;
+  const parts = blindsStr.split('/');
+  return parseFloat(parts[1]) || 2;
+}
+
+function getAmountInvestedBySeat(seatIdx, upToStreet) {
+  const streets = ['preflop','flop','turn','river'];
+  let total = 0;
+  for(const st of streets) {
+    for(const a of actions[st]) {
+      if(a.seatIdx === seatIdx && a.amount) {
+        total += parseFloat(a.amount) || 0;
+      }
+    }
+    if(st === upToStreet) break;
+  }
+  return total;
+}
+
+function getRemainingStack(seatIdx) {
+  const startStack = parseFloat(seats[seatIdx].stack) || 0;
+  if(!startStack) return null;
+  const invested = getAmountInvestedBySeat(seatIdx, currentStreet);
+  return Math.max(0, startStack - invested);
+}
+
 function renderActivePlayers() {
   const container = document.getElementById('activePlayers');
   const active = getActiveSeats();
+  const bb = getBBSize();
   container.innerHTML = '';
   active.forEach(({seatIdx, folded}) => {
     const s = seats[seatIdx];
     const pos = getPositionForSeat(seatIdx);
     const name = s.isHero ? 'Hero' : s.name;
+    const remaining = getRemainingStack(seatIdx);
+    let stackInfo = '';
+    if(remaining !== null) {
+      const bbs = Math.round(remaining / bb);
+      stackInfo = ` <span style="font-size:.55rem;color:var(--gold);">$${remaining} (${bbs}bb)</span>`;
+    }
     const chip = document.createElement('div');
     chip.className = 'player-chip' + (folded ? ' folded' : '') + (seatIdx === actingPlayerIdx ? ' acting' : '');
-    chip.innerHTML = `<span class="chip-pos">${pos}</span> ${name}`;
+    chip.innerHTML = `<span class="chip-pos">${pos}</span> ${name}${stackInfo}`;
     if(!folded) {
       chip.onclick = () => selectActingPlayer(seatIdx);
     }
@@ -941,19 +1108,43 @@ function renderActivePlayers() {
   });
 }
 
+function getLastBetAmount(street) {
+  const streetActions = actions[street || currentStreet];
+  for (let i = streetActions.length - 1; i >= 0; i--) {
+    const a = streetActions[i];
+    if (['bet', 'raise', 'allin'].includes(a.type) && a.amount) {
+      return parseFloat(a.amount);
+    }
+  }
+  // Preflop default: the big blind or straddle
+  if ((street || currentStreet) === 'preflop') {
+    const straddle = parseFloat(document.getElementById('straddle').value) || 0;
+    if (straddle > 0) return straddle;
+    const blindsStr = document.getElementById('blinds').value;
+    const parts = blindsStr.split('/');
+    return parseFloat(parts[1]) || 0;
+  }
+  return 0;
+}
+
 function selectActingPlayer(seatIdx) {
   actingPlayerIdx = seatIdx;
   document.getElementById('actionButtons').classList.add('visible');
   renderActivePlayers();
-  // Show amount input for bet/raise
+  // Pre-fill amount with last bet/raise
   const amtInput = document.getElementById('actionAmount');
   amtInput.classList.add('visible');
-  amtInput.value = '';
+  const lastBet = getLastBetAmount();
+  amtInput.value = lastBet > 0 ? lastBet : '';
 }
 
 function logAction(type) {
   if(actingPlayerIdx === null) return;
-  const amount = document.getElementById('actionAmount').value;
+  let amount = document.getElementById('actionAmount').value;
+  // Auto-fill call amount
+  if (type === 'call' && (!amount || amount === '0')) {
+    amount = getLastBetAmount() || '';
+  }
   const entry = {
     seatIdx: actingPlayerIdx,
     type: type,
@@ -985,14 +1176,105 @@ function renderTimeline() {
     const label = a.type === 'allin' ? 'ALL-IN' : a.type.charAt(0).toUpperCase() + a.type.slice(1);
     const div = document.createElement('div');
     div.className = 'timeline-entry';
+    // Calculate remaining stack at this point in the timeline
+    let stackAfter = '';
+    const startStack = parseFloat(seats[a.seatIdx]?.stack) || 0;
+    if(startStack > 0) {
+      let invested = 0;
+      const allStreets = ['preflop','flop','turn','river'];
+      for(const st of allStreets) {
+        for(let j = 0; j < actions[st].length; j++) {
+          if(actions[st][j].seatIdx === a.seatIdx && actions[st][j].amount) {
+            invested += parseFloat(actions[st][j].amount) || 0;
+          }
+          if(st === currentStreet && j === i) break;
+        }
+        if(st === currentStreet) break;
+      }
+      const rem = Math.max(0, startStack - invested);
+      const bbs = Math.round(rem / getBBSize());
+      stackAfter = `<span style="font-size:.55rem;color:var(--dim);margin-left:4px;">($${rem} / ${bbs}bb)</span>`;
+    }
     div.innerHTML = `
       <span class="timeline-player">${a.position} ${a.playerName}</span>
       <span class="timeline-action" style="color:${actionColors[a.type]}">${label}</span>
-      ${a.amount ? `<span class="timeline-amount">${a.amount}</span>` : ''}
-      <button class="timeline-delete" onclick="deleteAction('${currentStreet}',${i})">&times;</button>
+      ${a.amount ? `<span class="timeline-amount">$${a.amount}</span>` : ''}
+      ${stackAfter}
+      <button class="timeline-delete" onclick="event.stopPropagation();deleteAction('${currentStreet}',${i})">&times;</button>
     `;
+    div.onclick = () => openEditAction(currentStreet, i);
     container.appendChild(div);
   });
+}
+
+let editingStreet = null;
+let editingIdx = null;
+let editingType = null;
+
+function openEditAction(street, idx) {
+  const a = actions[street][idx];
+  editingStreet = street;
+  editingIdx = idx;
+  editingType = a.type;
+
+  document.getElementById('editActionTitle').textContent = 'Edit: ' + a.position + ' ' + a.playerName;
+
+  // Highlight current action type
+  document.querySelectorAll('#editActionTypes button').forEach(btn => {
+    const btnType = btn.textContent.toLowerCase().replace('-', '');
+    btn.classList.toggle('active', btnType === a.type);
+  });
+
+  // Show/hide amount
+  const needsAmount = ['bet', 'raise', 'call', 'allin'].includes(a.type);
+  document.getElementById('editAmountRow').style.display = needsAmount ? 'flex' : 'none';
+  document.getElementById('editAmountInput').value = a.amount || '';
+
+  document.getElementById('editActionOverlay').classList.add('active');
+}
+
+function setEditAction(type) {
+  editingType = type;
+  document.querySelectorAll('#editActionTypes button').forEach(btn => {
+    const btnType = btn.textContent.toLowerCase().replace('-', '');
+    btn.classList.toggle('active', btnType === type);
+  });
+  const needsAmount = ['bet', 'raise', 'call', 'allin'].includes(type);
+  document.getElementById('editAmountRow').style.display = needsAmount ? 'flex' : 'none';
+  // Pre-fill call amount
+  if (type === 'call' && editingStreet) {
+    const lastBet = getLastBetAmount(editingStreet);
+    if (lastBet > 0) document.getElementById('editAmountInput').value = lastBet;
+  }
+}
+
+function confirmEditAction() {
+  if (editingStreet === null || editingIdx === null) return;
+  const a = actions[editingStreet][editingIdx];
+  const oldType = a.type;
+  const newType = editingType;
+  const amount = parseFloat(document.getElementById('editAmountInput').value) || 0;
+
+  // Update fold tracking
+  if (oldType === 'fold' && newType !== 'fold') foldedPlayers.delete(a.seatIdx);
+  if (oldType !== 'fold' && newType === 'fold') foldedPlayers.add(a.seatIdx);
+
+  a.type = newType;
+  a.amount = ['bet', 'raise', 'call', 'allin'].includes(newType) ? amount : 0;
+
+  closeEditAction();
+  renderTimeline();
+  renderActivePlayers();
+  renderTable();
+  updatePotDisplay();
+  showToast('Action updated');
+}
+
+function closeEditAction() {
+  document.getElementById('editActionOverlay').classList.remove('active');
+  editingStreet = null;
+  editingIdx = null;
+  editingType = null;
 }
 
 function deleteAction(street, idx) {
@@ -1050,9 +1332,7 @@ function switchMainTab(tab) {
     renderActivePlayers();
     renderTimeline();
     updatePotDisplay();
-  }
-  if(tab === 'result') {
-    renderShowdown();
+    renderActionBoard();
   }
 }
 
@@ -1072,56 +1352,6 @@ function toggleTag(el) {
     activeTags.add(tag);
     el.classList.add('active');
   }
-}
-
-// ==================== SHOWDOWN ====================
-let showdownPickerSeatIdx = null;
-
-function renderShowdown() {
-  const el = document.getElementById('showdownSection');
-  // Show all named seats (hero + villains)
-  const namedSeats = seats.map((s,i) => ({...s, idx:i})).filter(s => s.name || s.isHero);
-  if(!namedSeats.length) {
-    el.innerHTML = '<div style="font-size:.75rem;color:var(--dim);padding:8px 0;">Set up players in the Setup tab first.</div>';
-    return;
-  }
-  let html = '';
-  namedSeats.forEach(s => {
-    const displayName = s.isHero ? 'Hero' : s.name;
-    const pos = getPositionForSeat(s.idx);
-    const borderColor = s.isHero ? 'var(--green)' : 'var(--red)';
-    html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(42,53,80,.3);">`;
-    html += `<div style="min-width:70px;"><span style="font-size:.8rem;font-weight:700;color:${borderColor};">${displayName}</span><br><span style="font-size:.6rem;color:var(--dim);">${pos}</span></div>`;
-    html += `<div style="display:flex;gap:3px;">`;
-    for(let c = 0; c < 2; c++) {
-      if(s.cards[c]) {
-        const cc = s.cards[c];
-        html += `<div class="mini-card ${cc.color}" style="width:28px;height:38px;font-size:.55rem;line-height:1;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;" onclick="openShowdownPicker(${s.idx},${c})"><span>${cc.rank}</span><span>${cc.suit}</span></div>`;
-      } else {
-        html += `<div style="width:28px;height:38px;border:2px dashed var(--border);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:.6rem;color:var(--dim);cursor:pointer;" onclick="openShowdownPicker(${s.idx},${c})">?</div>`;
-      }
-    }
-    html += `</div>`;
-    html += `</div>`;
-  });
-  el.innerHTML = html;
-}
-
-function openShowdownPicker(seatIdx, cardSlot) {
-  showdownPickerSeatIdx = seatIdx;
-  cardPickerSlot = cardSlot;
-  cardPickerMode = 'showdown';
-  cardPickerSelection = [];
-  cardPickerMaxCards = 1;
-
-  const existing = seats[seatIdx].cards[cardSlot];
-  if(existing) {
-    cardPickerSelection = [{ rank: existing.rank, suit: existing.suit, color: existing.color }];
-  }
-
-  document.getElementById('cardPickerTitle').textContent = `${seats[seatIdx].isHero ? 'Hero' : seats[seatIdx].name} — Card ${cardSlot + 1}`;
-  renderCardPicker();
-  document.getElementById('cardPickerModal').classList.add('open');
 }
 
 // ==================== RECAP ====================
@@ -1250,6 +1480,256 @@ function generateRecap() {
 
 function closeRecap() {
   document.getElementById('recapOverlay').classList.remove('open');
+}
+
+// ==================== MENU ====================
+function toggleMenu() {
+  const menu = document.getElementById('dropdownMenu');
+  menu.classList.toggle('open');
+  // Close on outside click
+  if (menu.classList.contains('open')) {
+    setTimeout(() => {
+      document.addEventListener('click', closeMenuOnOutside, { once: true });
+    }, 0);
+  }
+}
+function closeMenuOnOutside(e) {
+  const menu = document.getElementById('dropdownMenu');
+  if (!e.target.closest('.menu-wrap')) menu.classList.remove('open');
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+// ==================== SAVE / LOAD ====================
+let currentHandId = null;
+let currentHandName = null;
+
+function getHandState() {
+  return {
+    tableSize, dealerSeatIdx, seats: JSON.parse(JSON.stringify(seats)),
+    board: JSON.parse(JSON.stringify(board)), usedCards: [...usedCards],
+    actions: JSON.parse(JSON.stringify(actions)), foldedPlayers: [...foldedPlayers],
+    currentStreet, handResult, activeTags: [...activeTags],
+    blinds: document.getElementById('blinds').value,
+    straddle: document.getElementById('straddle').value,
+    gameType: document.getElementById('gameType').value,
+    notes: document.getElementById('notesField')?.value || ''
+  };
+}
+
+function loadHandState(state) {
+  tableSize = state.tableSize || 6;
+  document.getElementById('tableToggle').value = tableSize;
+  dealerSeatIdx = state.dealerSeatIdx || 0;
+  seats = state.seats || [];
+  board = state.board || {flop:[null,null,null], turn:[null], river:[null]};
+  usedCards = new Set(state.usedCards || []);
+  actions = state.actions || {preflop:[], flop:[], turn:[], river:[]};
+  foldedPlayers = new Set(state.foldedPlayers || []);
+  currentStreet = state.currentStreet || 'preflop';
+  handResult = state.handResult || null;
+  activeTags = new Set(state.activeTags || []);
+
+  document.getElementById('blinds').value = state.blinds || '1/2';
+  document.getElementById('straddle').value = state.straddle || '0';
+  document.getElementById('gameType').value = state.gameType || 'cash';
+  const notesField = document.getElementById('notesField');
+  if (notesField) notesField.value = state.notes || '';
+
+  // Update result buttons
+  document.querySelectorAll('[onclick*="setResult"]').forEach(b => {
+    b.classList.toggle('active', handResult && b.textContent.toLowerCase() === handResult);
+  });
+  // Update tag buttons
+  document.querySelectorAll('[onclick*="toggleTag"]').forEach(b => {
+    const tag = b.textContent.toLowerCase().replace(/\s+/g, '-');
+    b.classList.toggle('active', activeTags.has(tag));
+  });
+
+  selectedSeatIdx = null;
+  renderTable();
+  renderBoard();
+  renderActions();
+  updatePot();
+}
+
+// Cache hands in memory + sync with server API
+let _handsCache = null;
+
+function getSavedHands() {
+  if (_handsCache) return _handsCache;
+  try { return JSON.parse(localStorage.getItem('pokerHands') || '[]'); }
+  catch { return []; }
+}
+
+function saveSavedHands(hands) {
+  _handsCache = hands;
+  localStorage.setItem('pokerHands', JSON.stringify(hands));
+  // Sync to server
+  fetch('/api/sync', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(hands)
+  }).catch(e => console.log('Server sync failed, saved locally'));
+}
+
+// Load from server on startup, merge with local
+async function syncFromServer() {
+  try {
+    const res = await fetch('/api/sync');
+    if (!res.ok) return;
+    const serverHands = await res.json();
+    const localHands = getSavedHands();
+    // Merge: server wins for same ID, keep unique from both
+    const merged = [...serverHands];
+    for (const lh of localHands) {
+      if (!merged.find(h => h.id === lh.id)) merged.push(lh);
+    }
+    merged.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    _handsCache = merged;
+    localStorage.setItem('pokerHands', JSON.stringify(merged));
+  } catch (e) {
+    console.log('Server unreachable, using local data');
+  }
+}
+syncFromServer();
+
+function newHand() {
+  document.getElementById('dropdownMenu').classList.remove('open');
+  currentHandId = null;
+  currentHandName = null;
+  board = {flop:[null,null,null], turn:[null], river:[null]};
+  usedCards.clear();
+  actions = {preflop:[], flop:[], turn:[], river:[]};
+  foldedPlayers.clear();
+  currentStreet = 'preflop';
+  handResult = null;
+  activeTags.clear();
+  selectedSeatIdx = null;
+  document.getElementById('blinds').value = '1/2';
+  document.getElementById('straddle').value = '0';
+  document.getElementById('gameType').value = 'cash';
+  const notesField = document.getElementById('notesField');
+  if (notesField) notesField.value = '';
+  document.querySelectorAll('[onclick*="setResult"]').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('[onclick*="toggleTag"]').forEach(b => b.classList.remove('active'));
+  initSeats();
+  renderBoard();
+  showToast('New hand started');
+}
+
+function saveHand() {
+  document.getElementById('dropdownMenu').classList.remove('open');
+  if (!currentHandId) {
+    saveHandAs();
+    return;
+  }
+  const hands = getSavedHands();
+  const idx = hands.findIndex(h => h.id === currentHandId);
+  if (idx >= 0) {
+    hands[idx].state = getHandState();
+    hands[idx].updatedAt = new Date().toISOString();
+    saveSavedHands(hands);
+    showToast('Hand saved');
+  } else {
+    saveHandAs();
+  }
+}
+
+function saveHandAs() {
+  document.getElementById('dropdownMenu').classList.remove('open');
+  const nameInput = document.getElementById('saveNameInput');
+  // Default name from hero cards + date
+  const hero = seats.find(s => s.isHero);
+  let defaultName = 'Hand ' + new Date().toLocaleDateString();
+  if (hero && hero.cards[0]) {
+    defaultName = hero.cards[0].rank + hero.cards[0].suit;
+    if (hero.cards[1]) defaultName += hero.cards[1].rank + hero.cards[1].suit;
+    defaultName += ' — ' + new Date().toLocaleDateString();
+  }
+  nameInput.value = currentHandName || defaultName;
+  document.getElementById('saveOverlay').classList.add('active');
+}
+
+function closeSaveModal() {
+  document.getElementById('saveOverlay').classList.remove('active');
+}
+
+function confirmSaveAs() {
+  const name = document.getElementById('saveNameInput').value.trim() || 'Untitled Hand';
+  const hands = getSavedHands();
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const handData = {
+    id, name,
+    state: getHandState(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  hands.unshift(handData);
+  saveSavedHands(hands);
+  currentHandId = id;
+  currentHandName = name;
+  closeSaveModal();
+  showToast('Hand saved as "' + name + '"');
+}
+
+function openLoadModal() {
+  document.getElementById('dropdownMenu').classList.remove('open');
+  const list = document.getElementById('loadList');
+  const hands = getSavedHands();
+
+  if (hands.length === 0) {
+    list.innerHTML = '<div class="load-empty">No saved hands yet</div>';
+  } else {
+    list.innerHTML = hands.map(h => {
+      const date = new Date(h.updatedAt || h.createdAt).toLocaleString();
+      const blinds = h.state?.blinds || '?';
+      const size = (h.state?.tableSize || '?') + '-max';
+      const result = h.state?.handResult ? (h.state.handResult === 'won' ? 'Won' : 'Lost') : '';
+      return `
+        <div class="load-item" onclick="loadHand('${h.id}')">
+          <div class="li-name">${h.name}</div>
+          <div class="li-date">${date}</div>
+          <div class="li-info">${blinds} | ${size}${result ? ' | ' + result : ''}</div>
+          <div class="load-item-actions">
+            <button onclick="event.stopPropagation();deleteHand('${h.id}');" class="delete-btn">Delete</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+  document.getElementById('loadOverlay').classList.add('active');
+}
+
+function closeLoadModal() {
+  document.getElementById('loadOverlay').classList.remove('active');
+}
+
+function loadHand(id) {
+  const hands = getSavedHands();
+  const hand = hands.find(h => h.id === id);
+  if (!hand) return;
+  currentHandId = hand.id;
+  currentHandName = hand.name;
+  loadHandState(hand.state);
+  closeLoadModal();
+  showToast('Loaded "' + hand.name + '"');
+}
+
+function deleteHand(id) {
+  let hands = getSavedHands();
+  hands = hands.filter(h => h.id !== id);
+  saveSavedHands(hands);
+  if (currentHandId === id) {
+    currentHandId = null;
+    currentHandName = null;
+  }
+  openLoadModal(); // refresh list
+  showToast('Hand deleted');
 }
 
 // ==================== VOICE RECORDING ====================
