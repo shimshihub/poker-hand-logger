@@ -724,10 +724,11 @@ function renderTable() {
       actionHTML = `<span class="seat-action ${cls}">${label}${amt}</span>`;
     }
 
+    const remainingStack = s.stack ? getRemainingStack(i) : '';
     el.innerHTML = `
       <div class="seat-circle">${displayName.slice(0,3)}</div>
       <div class="seat-name">${displayName}</div>
-      ${s.stack ? `<div class="seat-stack">${s.stack}</div>` : ''}
+      ${s.stack ? `<div class="seat-stack">$${remainingStack}</div>` : ''}
       <div class="seat-position">${position}</div>
       ${cardsHTML}
       ${actionHTML}
@@ -1001,24 +1002,22 @@ function renderActionBoard() {
   container.classList.add('visible');
   let html = '';
 
-  function cardHtml(c, onclick) {
-    if (!c) return `<div class="mini-board-card empty" style="cursor:pointer;" onclick="${onclick}">?</div>`;
-    return `<div class="mini-board-card ${c.color}" style="cursor:pointer;" onclick="${onclick}"><span>${c.rank}</span><span>${c.suit}</span></div>`;
+  function cardHtml(c) {
+    if (!c) return '<div class="mini-board-card empty"></div>';
+    return `<div class="mini-board-card ${c.color}"><span>${c.rank}</span><span>${c.suit}</span></div>`;
   }
 
-  // Always show flop when on flop/turn/river
-  html += cardHtml(board.flop[0], "openCardPicker('flop',0)");
-  html += cardHtml(board.flop[1], "openCardPicker('flop',0)");
-  html += cardHtml(board.flop[2], "openCardPicker('flop',0)");
+  // Always show flop
+  html += cardHtml(board.flop[0]) + cardHtml(board.flop[1]) + cardHtml(board.flop[2]);
 
   if (currentStreet === 'turn' || currentStreet === 'river') {
     html += '<div class="mini-divider"></div>';
-    html += cardHtml(board.turn[0], "openCardPicker('turn',0)");
+    html += cardHtml(board.turn[0]);
   }
 
   if (currentStreet === 'river') {
     html += '<div class="mini-divider"></div>';
-    html += cardHtml(board.river[0], "openCardPicker('river',0)");
+    html += cardHtml(board.river[0]);
   }
 
   container.innerHTML = html;
@@ -1058,35 +1057,6 @@ function getActiveSeats() {
   return result;
 }
 
-function getBBSize() {
-  const straddle = parseFloat(document.getElementById('straddle').value) || 0;
-  if(straddle > 0) return straddle;
-  const blindsStr = document.getElementById('blinds').value;
-  const parts = blindsStr.split('/');
-  return parseFloat(parts[1]) || 2;
-}
-
-function getAmountInvestedBySeat(seatIdx, upToStreet) {
-  const streets = ['preflop','flop','turn','river'];
-  let total = 0;
-  for(const st of streets) {
-    for(const a of actions[st]) {
-      if(a.seatIdx === seatIdx && a.amount) {
-        total += parseFloat(a.amount) || 0;
-      }
-    }
-    if(st === upToStreet) break;
-  }
-  return total;
-}
-
-function getRemainingStack(seatIdx) {
-  const startStack = parseFloat(seats[seatIdx].stack) || 0;
-  if(!startStack) return null;
-  const invested = getAmountInvestedBySeat(seatIdx, currentStreet);
-  return Math.max(0, startStack - invested);
-}
-
 function renderActivePlayers() {
   const container = document.getElementById('activePlayers');
   const active = getActiveSeats();
@@ -1100,7 +1070,7 @@ function renderActivePlayers() {
     let stackInfo = '';
     if(remaining !== null) {
       const bbs = Math.round(remaining / bb);
-      stackInfo = ` <span style="font-size:.55rem;color:var(--gold);">$${remaining} (${bbs}bb)</span>`;
+      stackInfo = `<br><span style="font-size:.55rem;color:var(--gold);">$${remaining} (${bbs}bb)</span>`;
     }
     const chip = document.createElement('div');
     chip.className = 'player-chip' + (folded ? ' folded' : '') + (seatIdx === actingPlayerIdx ? ' acting' : '');
@@ -1180,7 +1150,7 @@ function renderTimeline() {
     const label = a.type === 'allin' ? 'ALL-IN' : a.type.charAt(0).toUpperCase() + a.type.slice(1);
     const div = document.createElement('div');
     div.className = 'timeline-entry';
-    // Calculate remaining stack at this point in the timeline
+    // Calculate remaining stack after this action
     let stackAfter = '';
     const startStack = parseFloat(seats[a.seatIdx]?.stack) || 0;
     if(startStack > 0) {
@@ -1195,9 +1165,9 @@ function renderTimeline() {
         }
         if(st === currentStreet) break;
       }
-      const rem = Math.max(0, startStack - invested);
+      const rem = Math.max(0, Math.round(startStack - invested));
       const bbs = Math.round(rem / getBBSize());
-      stackAfter = `<span style="font-size:.55rem;color:var(--dim);margin-left:4px;">($${rem} / ${bbs}bb)</span>`;
+      stackAfter = `<span style="font-size:.55rem;color:var(--dim);margin-left:4px;">$${rem} / ${bbs}bb</span>`;
     }
     div.innerHTML = `
       <span class="timeline-player">${a.position} ${a.playerName}</span>
@@ -1289,6 +1259,46 @@ function deleteAction(street, idx) {
   renderActivePlayers();
   renderTable();
   updatePotDisplay();
+}
+
+function getBBSize() {
+  const straddle = parseFloat(document.getElementById('straddle').value) || 0;
+  if(straddle > 0) return straddle;
+  const blindsStr = document.getElementById('blinds').value;
+  const parts = blindsStr.split('/');
+  return parseFloat(parts[1]) || 2;
+}
+
+function getRemainingStack(seatIdx) {
+  const startStack = parseFloat(seats[seatIdx].stack) || 0;
+  if (startStack === 0) return 0;
+  let totalInvested = 0;
+
+  // Sum all amounts this player has put in across all streets up to current
+  const streetOrder = ['preflop', 'flop', 'turn', 'river'];
+  const currentStreetIdx = streetOrder.indexOf(currentStreet);
+
+  for (let si = 0; si <= currentStreetIdx; si++) {
+    const st = streetOrder[si];
+    actions[st].forEach(a => {
+      if (a.seatIdx === seatIdx && a.amount) {
+        totalInvested += parseFloat(a.amount) || 0;
+      }
+    });
+  }
+
+  // Also account for blinds/straddle if this player is SB, BB, or straddle
+  const pos = getPositionForSeat(seatIdx);
+  const blindsStr = document.getElementById('blinds').value;
+  const parts = blindsStr.split('/');
+  if (pos === 'SB') totalInvested += parseFloat(parts[0]) || 0;
+  if (pos === 'BB') totalInvested += parseFloat(parts[1]) || 0;
+  const straddle = parseFloat(document.getElementById('straddle').value) || 0;
+  // Straddle is typically UTG or the position after BB
+  // For simplicity, if there's a straddle and this is the first position after BB, add it
+  // Actually, straddle is posted by specific seat — skip auto-adding for now
+
+  return Math.max(0, Math.round(startStack - totalInvested));
 }
 
 function calculatePot() {
@@ -1562,46 +1572,14 @@ function loadHandState(state) {
   updatePot();
 }
 
-// Cache hands in memory + sync with server API
-let _handsCache = null;
-
 function getSavedHands() {
-  if (_handsCache) return _handsCache;
   try { return JSON.parse(localStorage.getItem('pokerHands') || '[]'); }
   catch { return []; }
 }
 
 function saveSavedHands(hands) {
-  _handsCache = hands;
   localStorage.setItem('pokerHands', JSON.stringify(hands));
-  // Sync to server
-  fetch('/api/sync', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(hands)
-  }).catch(e => console.log('Server sync failed, saved locally'));
 }
-
-// Load from server on startup, merge with local
-async function syncFromServer() {
-  try {
-    const res = await fetch('/api/sync');
-    if (!res.ok) return;
-    const serverHands = await res.json();
-    const localHands = getSavedHands();
-    // Merge: server wins for same ID, keep unique from both
-    const merged = [...serverHands];
-    for (const lh of localHands) {
-      if (!merged.find(h => h.id === lh.id)) merged.push(lh);
-    }
-    merged.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    _handsCache = merged;
-    localStorage.setItem('pokerHands', JSON.stringify(merged));
-  } catch (e) {
-    console.log('Server unreachable, using local data');
-  }
-}
-syncFromServer();
 
 function newHand() {
   document.getElementById('dropdownMenu').classList.remove('open');
