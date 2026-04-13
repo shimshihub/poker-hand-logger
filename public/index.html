@@ -2,366 +2,1503 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#0a0e17">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<title>Hand Builder</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Poker Hand Builder</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:'Inter',sans-serif;background:#0a0e17;color:#e0e0e0;min-height:100dvh;overflow-x:hidden}
-  .top-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px}
-  .top-title{font-size:1.2rem;font-weight:900;background:linear-gradient(135deg,#ffd700,#ffaa00);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-  .top-btns{display:flex;gap:8px}
-  .top-btn{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;border:1px solid #2a3550;background:transparent;color:#8b9dc3;cursor:pointer;font-family:'Inter',sans-serif}
-  .top-btn.active{background:#ffd700;color:#0a0e17;border-color:#ffd700}
-  .top-btn.recap{background:#ffd700;color:#0a0e17;border-color:#ffd700}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
 
-  /* Tabs */
-  .tabs{display:flex;border-bottom:2px solid #1e2a40;margin:0 16px}
-  .tab{flex:1;padding:10px;text-align:center;font-size:13px;font-weight:600;color:#5a6a8a;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;-webkit-tap-highlight-color:transparent}
-  .tab.active{color:#ffd700;border-bottom-color:#ffd700}
-  .tab-panel{display:none;padding:12px 16px}.tab-panel.active{display:block}
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#0a0e17;--card-bg:#151b2b;--border:#2a3550;
+  --gold:#ffd700;--green:#4ade80;--red:#f87171;
+  --text:#e0e0e0;--muted:#8b9dc3;--dim:#5a6a8a;
+  --felt:#1a5c2a;--felt-border:#2d6b3f;
+}
+html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;-webkit-tap-highlight-color:transparent;}
 
-  /* Setup fields */
-  .setup-row{display:flex;gap:10px;margin-bottom:12px}
-  .setup-field{flex:1}
-  .setup-label{font-size:10px;color:#5a6a8a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
-  .setup-input{width:100%;background:#1e2a40;border:1px solid #2a3550;border-radius:8px;color:#fff;padding:10px 12px;font-size:14px;font-family:'Inter',sans-serif;outline:none}
-  .setup-input:focus{border-color:#ffd700}
-  select.setup-input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b9dc3' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+/* ---- HEADER ---- */
+.header{background:linear-gradient(135deg,#1a1f2e,#0d1117,#1a2332);border-bottom:2px solid var(--felt-border);padding:14px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;}
+.header h1{font-size:1.1rem;font-weight:900;background:linear-gradient(135deg,#ffd700,#ffaa00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.header-actions{display:flex;gap:8px;}
+.btn-sm{font-size:.7rem;padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--card-bg);color:var(--muted);cursor:pointer;font-weight:600;font-family:inherit;transition:all .2s;}
+.btn-sm:hover,.btn-sm.active{border-color:var(--gold);color:var(--gold);}
+.btn-gold{background:linear-gradient(135deg,#ffd700,#ffaa00);color:#0a0e17;border:none;font-weight:700;padding:6px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:.75rem;}
+.btn-gold:hover{filter:brightness(1.1);}
+.btn-mic{background:none;border:2px solid var(--red);color:var(--red);font-size:1.1rem;padding:4px 10px;border-radius:50%;cursor:pointer;transition:all .2s;line-height:1;}
+.btn-mic:hover,.btn-mic.recording{background:var(--red);color:#fff;box-shadow:0 0 12px rgba(248,113,113,.5);}
+.btn-mic.recording{animation:pulse-mic 1.2s infinite;}
+@keyframes pulse-mic{0%,100%{box-shadow:0 0 8px rgba(248,113,113,.4);}50%{box-shadow:0 0 20px rgba(248,113,113,.8);}}
 
-  /* Table */
-  .table-container{position:relative;width:100%;padding-top:75%;margin:8px 0}
-  .felt{position:absolute;top:12%;left:10%;width:80%;height:76%;border-radius:50%;background:linear-gradient(160deg,#1a6b2e,#22883c,#1a6b2e);border:4px solid #4a3a20;box-shadow:inset 0 0 50px rgba(0,0,0,.4),0 4px 24px rgba(0,0,0,.5)}
-  .pot-display{position:absolute;top:38%;left:50%;transform:translateX(-50%);text-align:center;z-index:10}
-  .pot-label{font-size:9px;color:#8b9dc3;text-transform:uppercase;letter-spacing:1px}
-  .pot-amount{font-size:22px;font-weight:900;color:#ffd700}
-  .seat{position:absolute;text-align:center;transform:translate(-50%,-50%);z-index:5;cursor:pointer;-webkit-tap-highlight-color:transparent}
-  .seat-dot{width:44px;height:44px;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;border:2px solid #3a4a6a;background:#1a2236;color:#5a6a8a;transition:all .15s}
-  .seat.hero .seat-dot{border-color:#ffd700;background:#2a2800;color:#ffd700;box-shadow:0 0 12px rgba(255,215,0,.3)}
-  .seat.villain .seat-dot{border-color:#f87171;background:#2a1010;color:#f87171;box-shadow:0 0 12px rgba(248,113,113,.3)}
-  .seat-info{font-size:9px;color:#5a6a8a;margin-top:2px;line-height:1.2}
-  .seat-pos{font-weight:700;color:#8b9dc3}
-  .dealer-btn{position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;color:#0a0e17;font-size:8px;font-weight:900;line-height:18px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.5);z-index:15}
-  .seat-cards{display:flex;gap:2px;justify-content:center;margin-top:3px}
-  .mc{width:24px;height:32px;background:#fff;border-radius:3px;font-size:10px;font-weight:700;line-height:32px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.3)}
-  .mc.red{color:#d32f2f}.mc.black{color:#1a1a1a}
+.voice-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:1000;align-items:center;justify-content:center;}
+.voice-overlay.active{display:flex;}
+.voice-modal{background:var(--card-bg);border:1px solid var(--border);border-radius:20px;padding:32px 24px;text-align:center;width:90%;max-width:340px;}
+.voice-animation{position:relative;width:80px;height:80px;margin:0 auto 16px;}
+.pulse-ring{position:absolute;top:0;left:0;right:0;bottom:0;border:2px solid var(--red);border-radius:50%;animation:pulse-ring 1.5s infinite;}
+@keyframes pulse-ring{0%{transform:scale(1);opacity:1;}100%{transform:scale(1.8);opacity:0;}}
+.mic-icon{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:2rem;}
+.voice-status{font-size:.9rem;font-weight:600;color:var(--text);margin-bottom:4px;}
+.voice-timer{font-size:2rem;font-weight:700;color:var(--gold);margin-bottom:12px;font-variant-numeric:tabular-nums;}
+.voice-transcript{font-size:.8rem;color:var(--muted);min-height:40px;margin-bottom:16px;max-height:120px;overflow-y:auto;line-height:1.4;padding:8px;background:rgba(0,0,0,.3);border-radius:8px;display:none;}
+.voice-transcript.has-text{display:block;}
+.voice-actions{display:flex;gap:12px;justify-content:center;}
+.btn-voice-cancel{background:none;border:1px solid var(--border);color:var(--muted);padding:10px 24px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:.85rem;font-weight:600;}
+.btn-voice-stop{background:var(--red);border:none;color:#fff;padding:10px 24px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:.85rem;font-weight:700;}
+.btn-voice-stop:disabled{opacity:.5;cursor:not-allowed;}
+.btn-voice-stop.processing{background:var(--gold);color:#0a0e17;}
 
-  /* Community cards */
-  .community{padding:16px;text-align:center}
-  .comm-label{font-size:10px;color:#5a6a8a;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}
-  .comm-row{display:flex;justify-content:center;align-items:center;gap:4px}
-  .comm-card{width:44px;height:60px;border-radius:6px;border:2px dashed #3a4a6a;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;background:transparent;color:#3a4a6a;cursor:pointer;-webkit-tap-highlight-color:transparent}
-  .comm-card.filled{border:none;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.3)}
-  .comm-card.filled.red{color:#d32f2f}.comm-card.filled.black{color:#1a1a1a}
-  .comm-sep{width:12px}
-  .comm-street{font-size:9px;color:#5a6a8a;text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+/* ---- TABS ---- */
+.main-tabs{display:flex;border-bottom:1px solid var(--border);background:#0d1117;position:sticky;top:52px;z-index:99;}
+.main-tab{flex:1;text-align:center;padding:10px 0;font-size:.75rem;font-weight:600;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;text-transform:uppercase;letter-spacing:.5px;}
+.main-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
 
-  /* Action panel */
-  .action-street{background:#151b2b;border:1px solid #2a3550;border-radius:12px;padding:14px;margin-bottom:10px}
-  .action-street-name{font-size:14px;font-weight:700;color:#4fc3f7;margin-bottom:8px}
-  .action-textarea{width:100%;background:#1e2a40;border:1px solid #2a3550;border-radius:8px;color:#fff;padding:10px;font-size:14px;font-family:'Inter',sans-serif;outline:none;resize:vertical;min-height:50px}
-  .action-textarea:focus{border-color:#ffd700}
+/* ---- GAME INFO BAR ---- */
+.game-info{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:12px;background:#0d1117;}
+.info-field label{font-size:.6rem;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:3px;}
+.info-field input,.info-field select{width:100%;background:var(--card-bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-family:inherit;font-size:.8rem;}
+.info-field select{-webkit-appearance:none;appearance:none;}
 
-  /* Result panel */
-  .result-section{background:#151b2b;border:1px solid #2a3550;border-radius:12px;padding:16px;margin-bottom:12px}
-  .result-title{font-size:12px;color:#ffd700;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:12px}
+/* ---- TABLE VIEW ---- */
+.table-section{padding:12px;position:relative;}
+.table-container{position:relative;width:100%;max-width:400px;margin:0 auto;aspect-ratio:1.5/1;}
+.poker-table{position:absolute;top:15%;left:10%;width:80%;height:70%;background:radial-gradient(ellipse,#1e6b35,#174f28,#0f3a1c);border-radius:50%;border:4px solid var(--felt-border);box-shadow:0 0 40px rgba(30,107,53,.3),inset 0 0 30px rgba(0,0,0,.3);}
+.poker-table::before{content:'';position:absolute;top:8%;left:8%;right:8%;bottom:8%;border:1px solid rgba(255,255,255,.08);border-radius:50%;}
+.pot-display{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;}
+.pot-display .pot-label{font-size:.55rem;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:1px;}
+.pot-display .pot-amount{font-size:1.1rem;font-weight:700;color:var(--gold);}
 
-  /* Card picker modal */
-  .modal-bg{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:100;align-items:flex-end;justify-content:center}
-  .modal-bg.show{display:flex}
-  .modal{background:#151b2b;border-top:2px solid #ffd700;border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:480px}
-  .modal-title{font-size:14px;font-weight:700;color:#ffd700;text-align:center;margin-bottom:12px}
-  .rank-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:16px}
-  .rank-btn{padding:10px 0;border-radius:8px;background:#1e2a40;border:1px solid #2a3550;color:#fff;font-size:16px;font-weight:700;cursor:pointer;text-align:center;font-family:'Inter',sans-serif}
-  .rank-btn:active,.rank-btn.selected{background:#ffd700;color:#0a0e17;border-color:#ffd700}
-  .suit-grid{display:flex;justify-content:center;gap:12px;margin-bottom:16px}
-  .suit-btn{width:56px;height:56px;border-radius:12px;background:#1e2a40;border:2px solid #2a3550;font-size:28px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-  .suit-btn:active,.suit-btn.selected{border-color:#ffd700;background:#2a2800}
-  .suit-btn.red{color:#d32f2f}.suit-btn.black{color:#1a1a1a}
-  .modal-actions{display:flex;gap:10px}
-  .modal-btn{flex:1;padding:12px;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
-  .modal-btn.confirm{background:#ffd700;color:#0a0e17}
-  .modal-btn.cancel{background:#1e2a40;color:#8b9dc3;border:1px solid #2a3550}
-  .modal-btn.clear{background:rgba(248,113,113,.1);color:#f87171;border:1px solid rgba(248,113,113,.3)}
+.seat{position:absolute;width:56px;display:flex;flex-direction:column;align-items:center;cursor:pointer;transform:translate(-50%,-50%);transition:all .2s;z-index:10;}
+.seat:hover .seat-circle{border-color:var(--gold);}
+.seat.selected .seat-circle{border-color:var(--gold);box-shadow:0 0 12px rgba(255,215,0,.4);}
+.seat.hero .seat-circle{border-color:var(--green);box-shadow:0 0 12px rgba(74,222,128,.3);}
+.seat-circle{width:42px;height:42px;border-radius:50%;background:var(--card-bg);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:var(--muted);transition:all .2s;}
+.seat-name{font-size:.55rem;color:var(--muted);margin-top:2px;max-width:56px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;}
+.seat-stack{font-size:.5rem;color:var(--dim);}
+.seat-cards{display:flex;gap:1px;margin-top:2px;}
+.seat-cards .mini-card{width:18px;height:25px;background:#fff;border-radius:2px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.4rem;font-weight:700;line-height:1;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+.mini-card.red{color:#dc2626;}
+.mini-card.black{color:#1a1a1a;}
+.mini-card.face-down{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:transparent;}
+.mini-card.face-down::after{content:'';position:absolute;width:12px;height:17px;border:1px solid rgba(255,255,255,.15);border-radius:1px;}
 
-  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#4ade80;color:#0a0e17;padding:10px 24px;border-radius:10px;font-weight:700;font-size:14px;display:none;z-index:999}
-  .toast.show{display:block;animation:fadeInOut 2s}
-  @keyframes fadeInOut{0%{opacity:0}10%{opacity:1}80%{opacity:1}100%{opacity:0}}
+.seat-position{font-size:.5rem;font-weight:700;color:var(--gold);margin-top:1px;}
+.seat-action{font-size:.5rem;padding:1px 4px;border-radius:3px;margin-top:1px;font-weight:600;}
+.action-fold{background:#3b1f1f;color:var(--red);}
+.action-check{background:#1a2a1a;color:var(--green);}
+.action-call{background:#1a2a3a;color:#60a5fa;}
+.action-bet,.action-raise{background:#3b2a1a;color:#fbbf24;}
+.action-allin{background:#4a1a1a;color:#ff6b6b;}
+
+.dealer-btn{position:absolute;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#fff,#e0e0e0);color:#1a1a1a;font-size:.55rem;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.4);cursor:pointer;z-index:15;transition:all .3s;transform:translate(-50%,-50%);}
+
+/* ---- BOARD ---- */
+.board-section{padding:12px;text-align:center;}
+.board-title{font-size:.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.board-cards-row{display:flex;justify-content:center;gap:6px;align-items:center;min-height:66px;}
+.board-slot{width:44px;height:62px;border:2px dashed var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;position:relative;}
+.board-slot:hover{border-color:var(--gold);}
+.board-slot.filled{border:none;}
+.board-divider{width:1px;height:40px;background:var(--border);margin:0 4px;}
+.board-street-label{font-size:.5rem;color:var(--dim);position:absolute;bottom:-14px;text-transform:uppercase;letter-spacing:.5px;}
+
+.card{width:44px;height:62px;background:#fff;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.3);line-height:1.1;cursor:pointer;transition:transform .15s;}
+.card .rank{font-size:1rem;}
+.card .suit{font-size:.9rem;}
+.card.red{color:#dc2626;}
+.card.black{color:#1a1a1a;}
+.card:hover{transform:scale(1.05);}
+
+/* ---- CARD PICKER MODAL ---- */
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:200;justify-content:center;align-items:flex-end;backdrop-filter:blur(4px);}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--bg);border-top:2px solid var(--gold);border-radius:16px 16px 0 0;width:100%;max-width:420px;max-height:85vh;overflow-y:auto;padding:16px;animation:slideUp .3s ease;}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-title{font-size:.85rem;font-weight:700;color:var(--gold);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;}
+.modal-close{background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;padding:4px;}
+
+.card-grid{display:grid;grid-template-columns:repeat(13,1fr);gap:3px;margin-bottom:8px;}
+.card-pick{width:100%;aspect-ratio:.65;background:#fff;border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.5rem;font-weight:700;cursor:pointer;transition:all .15s;line-height:1;border:2px solid transparent;}
+.card-pick:hover{transform:scale(1.1);z-index:1;}
+.card-pick.selected{border-color:var(--gold);box-shadow:0 0 8px rgba(255,215,0,.5);}
+.card-pick.used{opacity:.2;pointer-events:none;}
+.card-pick.red{color:#dc2626;}
+.card-pick.black{color:#1a1a1a;}
+
+.suit-label{font-size:.6rem;color:var(--muted);padding:4px 0 2px;font-weight:600;}
+
+/* ---- SEAT EDIT PANEL ---- */
+.seat-panel{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:16px;margin:12px;}
+.seat-panel-title{font-size:.8rem;font-weight:700;color:var(--gold);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+.seat-panel-row{display:flex;gap:8px;margin-bottom:8px;align-items:center;}
+.seat-panel-row label{font-size:.65rem;color:var(--dim);width:50px;flex-shrink:0;text-transform:uppercase;}
+.seat-panel-row input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-family:inherit;font-size:.8rem;}
+.hero-toggle{display:flex;gap:6px;}
+.hero-toggle .btn-sm{font-size:.65rem;padding:4px 10px;}
+
+/* ---- STREET ACTIONS ---- */
+.street-section{padding:12px;}
+.street-tabs{display:flex;gap:4px;margin-bottom:12px;}
+.street-tab{flex:1;text-align:center;padding:8px 0;font-size:.7rem;font-weight:600;color:var(--dim);cursor:pointer;border-radius:6px;background:var(--card-bg);border:1px solid var(--border);transition:all .2s;text-transform:uppercase;}
+.street-tab.active{border-color:var(--gold);color:var(--gold);background:#1a1f2e;}
+.street-tab .street-pot{font-size:.55rem;color:var(--dim);display:block;margin-top:2px;}
+
+.active-players{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+.player-chip{display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;background:var(--card-bg);border:1px solid var(--border);cursor:pointer;transition:all .2s;font-size:.7rem;font-weight:600;color:var(--muted);}
+.player-chip.folded{opacity:.3;text-decoration:line-through;}
+.player-chip:hover{border-color:var(--gold);}
+.player-chip.acting{border-color:var(--gold);color:var(--gold);}
+.player-chip .chip-pos{font-size:.55rem;color:var(--dim);}
+
+.action-buttons{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;display:none;}
+.action-buttons.visible{display:flex;}
+.action-btn{padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--card-bg);color:var(--text);font-family:inherit;font-size:.75rem;font-weight:600;cursor:pointer;transition:all .2s;}
+.action-btn:hover{border-color:var(--gold);}
+.action-btn.fold{border-color:#f87171;color:#f87171;}
+.action-btn.check{border-color:var(--green);color:var(--green);}
+.action-btn.call{border-color:#60a5fa;color:#60a5fa;}
+.action-btn.bet,.action-btn.raise{border-color:#fbbf24;color:#fbbf24;}
+.action-btn.allin{border-color:#ff6b6b;color:#ff6b6b;background:#2a1010;}
+.amount-input{width:80px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-family:inherit;font-size:.8rem;display:none;}
+.amount-input.visible{display:block;}
+
+.action-timeline{margin-top:8px;}
+.timeline-entry{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:.7rem;border-bottom:1px solid rgba(42,53,80,.3);}
+.timeline-player{font-weight:600;color:var(--muted);min-width:50px;}
+.timeline-action{font-weight:600;}
+.timeline-amount{color:var(--gold);font-weight:600;}
+.timeline-delete{background:none;border:none;color:var(--dim);cursor:pointer;font-size:.65rem;margin-left:auto;padding:2px 6px;}
+.timeline-delete:hover{color:var(--red);}
+
+/* ---- RESULT SECTION ---- */
+.result-section{padding:12px;}
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.result-btn{padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--card-bg);color:var(--muted);font-family:inherit;font-size:.8rem;font-weight:600;cursor:pointer;text-align:center;transition:all .2s;}
+.result-btn.won{border-color:var(--green);color:var(--green);}
+.result-btn.won.active{background:rgba(74,222,128,.1);}
+.result-btn.lost{border-color:var(--red);color:var(--red);}
+.result-btn.lost.active{background:rgba(248,113,113,.1);}
+
+.tags-container{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+.tag-btn{font-size:.65rem;padding:4px 10px;border-radius:20px;border:1px solid var(--border);background:var(--card-bg);color:var(--muted);cursor:pointer;font-weight:600;transition:all .2s;font-family:inherit;}
+.tag-btn.active{border-color:var(--gold);color:var(--gold);background:rgba(255,215,0,.08);}
+.tag-bluff.active{border-color:#c084fc;color:#c084fc;background:#3b1f4a;}
+.tag-cooler.active{border-color:#fbbf24;color:#fbbf24;background:#3b2a1a;}
+.tag-herofold.active{border-color:#60a5fa;color:#60a5fa;background:#1a2a4a;}
+.tag-value.active{border-color:var(--green);color:var(--green);background:#1a3a2a;}
+.tag-slowplay.active{border-color:#e879f9;color:#e879f9;background:#3b1a3b;}
+.tag-3bet.active{border-color:#fb923c;color:#fb923c;background:#3b2a1a;}
+
+.notes-field{width:100%;min-height:80px;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-family:inherit;font-size:.8rem;resize:vertical;}
+
+/* ---- RECAP ---- */
+.recap-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:300;overflow-y:auto;padding:16px;}
+.recap-overlay.open{display:block;}
+.recap-container{max-width:500px;margin:0 auto;}
+.recap-close{position:fixed;top:12px;right:16px;z-index:301;background:var(--card-bg);border:1px solid var(--border);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;color:var(--muted);cursor:pointer;font-size:1.1rem;}
+
+.recap-card{background:linear-gradient(145deg,#151b2b,#1a2236);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;}
+.recap-header{text-align:center;margin-bottom:16px;}
+.recap-header h2{font-size:1.2rem;font-weight:900;background:linear-gradient(135deg,#ffd700,#ffaa00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.recap-header .recap-meta{font-size:.75rem;color:var(--dim);margin-top:4px;}
+.recap-positions{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;}
+.recap-position{font-size:.7rem;padding:2px 8px;border-radius:4px;background:#1e2a40;color:var(--muted);font-weight:600;}
+.recap-cards-row{display:flex;align-items:center;gap:16px;margin-bottom:12px;flex-wrap:wrap;}
+.recap-cards-group{display:flex;gap:4px;}
+.recap-vs{font-size:.75rem;color:var(--dim);font-weight:600;text-transform:uppercase;}
+.recap-board-label{font-size:.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+.recap-board-cards{display:flex;gap:4px;margin-bottom:8px;}
+.recap-board-cards .card{width:40px;height:56px;font-size:.8rem;}
+.recap-street{margin-bottom:8px;}
+.recap-street-title{font-size:.7rem;color:var(--gold);font-weight:700;margin-bottom:4px;text-transform:uppercase;}
+.recap-street-actions{font-size:.75rem;color:var(--muted);line-height:1.6;}
+.recap-result{text-align:center;padding:12px;border-radius:8px;margin-top:8px;}
+.recap-result.won{background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.3);}
+.recap-result.lost{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);}
+.recap-result .result-text{font-size:1rem;font-weight:700;}
+.recap-result .result-pot{font-size:.8rem;color:var(--muted);margin-top:2px;}
+.recap-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;justify-content:center;}
+.recap-tag{font-size:.65rem;padding:3px 10px;border-radius:20px;font-weight:600;}
+.recap-notes{font-size:.8rem;color:var(--muted);line-height:1.5;margin-top:12px;padding-top:12px;border-top:1px solid #1e2a40;white-space:pre-wrap;}
+
+/* ---- SCROLLBAR ---- */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+
+/* Section divider */
+.section-divider{height:1px;background:var(--border);margin:0;}
+
+/* Tab content */
+.tab-content{display:none;}
+.tab-content.active{display:block;}
 </style>
 </head>
 <body>
 
-<div class="top-bar">
-  <div class="top-title">Hand Builder</div>
-  <div class="top-btns">
-    <button class="top-btn" id="maxBtn" onclick="toggleMax()">9-max</button>
-    <button class="top-btn recap" onclick="showRecap()">Recap</button>
+<!-- HEADER -->
+<div class="header">
+  <h1>Hand Builder</h1>
+  <div class="header-actions">
+    <select class="btn-sm" id="tableToggle" onchange="changeTableSize(parseInt(this.value))">
+      <option value="5">5-max</option>
+      <option value="6" selected>6-max</option>
+      <option value="7">7-max</option>
+      <option value="8">8-max</option>
+      <option value="9">9-max</option>
+    </select>
+    <button class="btn-mic" id="micBtn" onclick="toggleVoiceRecording()">&#127908;</button>
+    <button class="btn-gold" onclick="generateRecap()">Recap</button>
   </div>
 </div>
 
-<div class="tabs">
-  <div class="tab active" onclick="switchTab('setup')">Setup</div>
-  <div class="tab" onclick="switchTab('action')">Action</div>
-  <div class="tab" onclick="switchTab('result')">Result</div>
-</div>
-
-<!-- SETUP -->
-<div class="tab-panel active" id="panel-setup">
-  <div class="setup-row">
-    <div class="setup-field"><div class="setup-label">Blinds</div><input class="setup-input" id="blinds" value="$5/$10" placeholder="$1/$2"></div>
-    <div class="setup-field"><div class="setup-label">Straddle</div><input class="setup-input" id="straddle" value="0" placeholder="0"></div>
-    <div class="setup-field"><div class="setup-label">Game</div><select class="setup-input" id="gameType"><option>Cash</option><option>Tournament</option></select></div>
-  </div>
-
-  <div class="table-container" id="tableContainer"></div>
-
-  <div class="community">
-    <div class="comm-label">Community Cards</div>
-    <div class="comm-row">
-      <div class="comm-card" id="cc0" onclick="pickCard('cc',0)"></div>
-      <div class="comm-card" id="cc1" onclick="pickCard('cc',1)"></div>
-      <div class="comm-card" id="cc2" onclick="pickCard('cc',2)"></div>
-      <div class="comm-sep"></div>
-      <div class="comm-card" id="cc3" onclick="pickCard('cc',3)"></div>
-      <div class="comm-sep"></div>
-      <div class="comm-card" id="cc4" onclick="pickCard('cc',4)"></div>
+<!-- Voice recording overlay -->
+<div class="voice-overlay" id="voiceOverlay">
+  <div class="voice-modal">
+    <div class="voice-animation" id="voiceAnimation">
+      <div class="pulse-ring"></div>
+      <div class="mic-icon">&#127908;</div>
     </div>
-    <div class="comm-row" style="margin-top:4px">
-      <div class="comm-street" style="width:136px">Flop</div>
-      <div class="comm-sep"></div>
-      <div class="comm-street" style="width:44px">Turn</div>
-      <div class="comm-sep"></div>
-      <div class="comm-street" style="width:44px">River</div>
+    <div class="voice-status" id="voiceStatus">Recording...</div>
+    <div class="voice-timer" id="voiceTimer">0:00</div>
+    <div class="voice-transcript" id="voiceTranscript"></div>
+    <div class="voice-actions">
+      <button class="btn-voice-cancel" onclick="cancelVoiceRecording()">Cancel</button>
+      <button class="btn-voice-stop" id="voiceStopBtn" onclick="stopAndTranscribe()">Stop & Process</button>
     </div>
   </div>
 </div>
 
-<!-- ACTION -->
-<div class="tab-panel" id="panel-action">
-  <div class="action-street"><div class="action-street-name">Preflop</div><textarea class="action-textarea" id="actPre" placeholder="e.g. Hero raises to 110, BB 3-bets to 400, Hero calls"></textarea></div>
-  <div class="action-street"><div class="action-street-name">Flop</div><textarea class="action-textarea" id="actFlop" placeholder="e.g. Hero bets 100, BB raises to 400"></textarea></div>
-  <div class="action-street"><div class="action-street-name">Turn</div><textarea class="action-textarea" id="actTurn" placeholder="e.g. Check-check"></textarea></div>
-  <div class="action-street"><div class="action-street-name">River</div><textarea class="action-textarea" id="actRiver" placeholder="e.g. BB checks, Hero shoves 1800, BB calls"></textarea></div>
+<!-- MAIN TABS -->
+<div class="main-tabs">
+  <div class="main-tab active" data-tab="setup" onclick="switchMainTab('setup')">Setup</div>
+  <div class="main-tab" data-tab="action" onclick="switchMainTab('action')">Action</div>
+  <div class="main-tab" data-tab="result" onclick="switchMainTab('result')">Result</div>
 </div>
 
-<!-- RESULT -->
-<div class="tab-panel" id="panel-result">
+<!-- ===== SETUP TAB ===== -->
+<div class="tab-content active" id="tab-setup">
+
+  <!-- Game Info -->
+  <div class="game-info">
+    <div class="info-field">
+      <label>Blinds</label>
+      <select id="blinds">
+        <option value="1/2">$1/$2</option>
+        <option value="1/3">$1/$3</option>
+        <option value="2/5">$2/$5</option>
+        <option value="3/5">$3/$5</option>
+        <option value="5/10">$5/$10</option>
+        <option value="10/20">$10/$20</option>
+        <option value="25/50">$25/$50</option>
+      </select>
+    </div>
+    <div class="info-field">
+      <label>Straddle</label>
+      <input type="number" id="straddle" placeholder="0">
+    </div>
+    <div class="info-field">
+      <label>Game</label>
+      <select id="gameType">
+        <option value="cash">Cash</option>
+        <option value="tournament">Tournament</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- Table -->
+  <div class="table-section">
+    <div class="table-container" id="tableContainer">
+      <div class="poker-table">
+        <div class="pot-display">
+          <div class="pot-label">Pot</div>
+          <div class="pot-amount" id="potDisplay">0</div>
+        </div>
+      </div>
+      <!-- Seats injected by JS -->
+      <!-- Dealer button injected by JS -->
+    </div>
+  </div>
+
+  <!-- Seat Edit Panel (shown when seat selected) -->
+  <div class="seat-panel" id="seatPanel" style="display:none;">
+    <div class="seat-panel-title">
+      <span id="seatPanelTitle">Seat 1</span>
+      <button class="btn-sm" onclick="closeSeatPanel()" style="font-size:.6rem;padding:2px 8px;">Close</button>
+    </div>
+    <div class="seat-panel-row">
+      <label>Name</label>
+      <input type="text" id="seatName" placeholder="Player name" oninput="updateSeatName()">
+    </div>
+    <div class="seat-panel-row">
+      <label>Stack</label>
+      <input type="number" id="seatStack" placeholder="200" oninput="updateSeatStack()">
+    </div>
+    <div class="seat-panel-row">
+      <label>Role</label>
+      <div class="hero-toggle">
+        <button class="btn-sm" id="heroBtn" onclick="toggleHero()">Hero</button>
+        <button class="btn-sm" onclick="openCardPicker('hole')">Cards</button>
+        <button class="btn-sm" onclick="clearSeat()" style="color:var(--red);border-color:var(--red);">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- Board -->
+  <div class="board-section">
+    <div class="board-title">Community Cards</div>
+    <div class="board-cards-row" id="boardRow">
+      <div class="board-slot" onclick="openCardPicker('flop',0)"><span class="board-street-label">Flop</span></div>
+      <div class="board-slot" onclick="openCardPicker('flop',1)"></div>
+      <div class="board-slot" onclick="openCardPicker('flop',2)"></div>
+      <div class="board-divider"></div>
+      <div class="board-slot" onclick="openCardPicker('turn',0)"><span class="board-street-label">Turn</span></div>
+      <div class="board-divider"></div>
+      <div class="board-slot" onclick="openCardPicker('river',0)"><span class="board-street-label">River</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ACTION TAB ===== -->
+<div class="tab-content" id="tab-action">
+  <div class="street-section">
+    <div class="street-tabs">
+      <div class="street-tab active" data-street="preflop" onclick="switchStreet('preflop')">Preflop</div>
+      <div class="street-tab" data-street="flop" onclick="switchStreet('flop')">Flop</div>
+      <div class="street-tab" data-street="turn" onclick="switchStreet('turn')">Turn</div>
+      <div class="street-tab" data-street="river" onclick="switchStreet('river')">River</div>
+    </div>
+
+    <div class="active-players" id="activePlayers"></div>
+
+    <div class="action-buttons" id="actionButtons">
+      <button class="action-btn fold" onclick="logAction('fold')">Fold</button>
+      <button class="action-btn check" onclick="logAction('check')">Check</button>
+      <button class="action-btn call" onclick="logAction('call')">Call</button>
+      <button class="action-btn bet" onclick="logAction('bet')">Bet</button>
+      <button class="action-btn raise" onclick="logAction('raise')">Raise</button>
+      <button class="action-btn allin" onclick="logAction('allin')">All-in</button>
+      <input type="number" class="amount-input" id="actionAmount" placeholder="Amount">
+    </div>
+
+    <div id="streetPot" style="text-align:center;padding:8px;font-size:.75rem;color:var(--dim);">
+      Pot: <span style="color:var(--gold);font-weight:700;" id="streetPotAmount">0</span>
+    </div>
+
+    <div class="action-timeline" id="actionTimeline"></div>
+  </div>
+</div>
+
+<!-- ===== RESULT TAB ===== -->
+<div class="tab-content" id="tab-result">
   <div class="result-section">
-    <div class="result-title">Outcome</div>
-    <div class="setup-row">
-      <div class="setup-field"><div class="setup-label">Result</div><select class="setup-input" id="result"><option>Won</option><option>Lost</option></select></div>
-      <div class="setup-field"><div class="setup-label">Amount ($)</div><input class="setup-input" type="number" id="resultAmount" placeholder="2600"></div>
+    <div style="font-size:.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Result</div>
+    <div class="result-grid">
+      <button class="result-btn won" id="resultWon" onclick="setResult('won')">Won</button>
+      <button class="result-btn lost" id="resultLost" onclick="setResult('lost')">Lost</button>
     </div>
-  </div>
-  <div class="result-section">
-    <div class="result-title">Villain</div>
-    <div class="setup-row">
-      <div class="setup-field"><div class="setup-label">Villain's Hand</div><input class="setup-input" id="villainHand" placeholder="e.g. AA, KQs"></div>
+
+    <div style="font-size:.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;">Tags</div>
+    <div class="tags-container" id="tagsContainer">
+      <button class="tag-btn tag-bluff" data-tag="bluff" onclick="toggleTag(this)">Bluff</button>
+      <button class="tag-btn tag-cooler" data-tag="cooler" onclick="toggleTag(this)">Cooler</button>
+      <button class="tag-btn tag-herofold" data-tag="hero fold" onclick="toggleTag(this)">Hero Fold</button>
+      <button class="tag-btn tag-value" data-tag="value bet" onclick="toggleTag(this)">Value Bet</button>
+      <button class="tag-btn tag-slowplay" data-tag="slow play" onclick="toggleTag(this)">Slow Play</button>
+      <button class="tag-btn tag-3bet" data-tag="3-bet pot" onclick="toggleTag(this)">3-Bet Pot</button>
+      <button class="tag-btn" data-tag="squeeze" onclick="toggleTag(this)">Squeeze</button>
+      <button class="tag-btn" data-tag="multi-way" onclick="toggleTag(this)">Multi-way</button>
+      <button class="tag-btn" data-tag="set mine" onclick="toggleTag(this)">Set Mine</button>
+      <button class="tag-btn" data-tag="draw" onclick="toggleTag(this)">Draw</button>
     </div>
-  </div>
-  <div class="result-section">
-    <div class="result-title">Notes / Lesson</div>
-    <textarea class="action-textarea" id="notes" placeholder="What did you learn from this hand?"></textarea>
+
+    <div style="font-size:.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;">Showdown — Player Hands</div>
+    <div id="showdownSection"></div>
+
+    <div style="font-size:.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;">Notes</div>
+    <textarea class="notes-field" id="handNotes" placeholder="What happened? What did you learn?"></textarea>
   </div>
 </div>
 
-<!-- Card Picker Modal -->
-<div class="modal-bg" id="cardModal">
+<!-- ===== CARD PICKER MODAL ===== -->
+<div class="modal-overlay" id="cardPickerModal">
   <div class="modal">
-    <div class="modal-title" id="modalTitle">Pick a Card</div>
-    <div class="rank-grid" id="rankGrid"></div>
-    <div class="suit-grid" id="suitGrid"></div>
-    <div class="modal-actions">
-      <button class="modal-btn clear" onclick="clearCard()">Clear</button>
-      <button class="modal-btn cancel" onclick="closeModal()">Cancel</button>
-      <button class="modal-btn confirm" onclick="confirmCard()">Done</button>
+    <div class="modal-title">
+      <span id="cardPickerTitle">Select Cards</span>
+      <button class="modal-close" onclick="closeCardPicker()">&times;</button>
+    </div>
+    <div id="cardPickerGrid"></div>
+    <div style="text-align:center;margin-top:8px;">
+      <button class="btn-gold" onclick="confirmCardPicker()">Done</button>
     </div>
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<!-- ===== RECAP OVERLAY ===== -->
+<div class="recap-overlay" id="recapOverlay">
+  <button class="recap-close" onclick="closeRecap()">&times;</button>
+  <div class="recap-container" id="recapContent"></div>
+</div>
 
 <script>
-const SYM={s:'\u2660',h:'\u2665',d:'\u2666',c:'\u2663'};
-const COL={s:'black',h:'red',d:'red',c:'black'};
-const RANKS=['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
-const SUITS=[{k:'s',sym:'\u2660',c:'black'},{k:'h',sym:'\u2665',c:'red'},{k:'d',sym:'\u2666',c:'red'},{k:'c',sym:'\u2663',c:'black'}];
+// ==================== STATE ====================
+const POSITIONS = {
+  5: ['BTN','SB','BB','UTG','CO'],
+  6: ['BTN','SB','BB','UTG','MP','CO'],
+  7: ['BTN','SB','BB','UTG','MP','HJ','CO'],
+  8: ['BTN','SB','BB','UTG','UTG+1','MP','HJ','CO'],
+  9: ['BTN','SB','BB','UTG','UTG+1','MP','MP+1','HJ','CO']
+};
+const SUITS = [
+  {symbol:'♠',name:'spades',color:'black'},
+  {symbol:'♥',name:'hearts',color:'red'},
+  {symbol:'♦',name:'diamonds',color:'red'},
+  {symbol:'♣',name:'clubs',color:'black'}
+];
+const RANKS = ['A','K','Q','J','10','9','8','7','6','5','4','3','2'];
 
-const LAYOUTS={
-  6:{pos:['BTN','SB','BB','UTG','MP','CO'],xy:[[50,92],[18,82],[18,22],[50,8],[82,22],[82,82]]},
-  7:{pos:['BTN','SB','BB','UTG','MP','HJ','CO'],xy:[[50,94],[22,85],[12,45],[22,12],[50,5],[78,12],[88,45]]},
-  8:{pos:['BTN','SB','BB','UTG','UTG+1','MP','HJ','CO'],xy:[[50,94],[22,88],[12,55],[15,20],[35,5],[65,5],[85,20],[88,55]]},
-  9:{pos:['BTN','SB','BB','UTG','UTG+1','UTG+2','MP','HJ','CO'],xy:[[50,94],[22,88],[12,60],[12,30],[28,8],[50,3],[72,8],[88,30],[88,60]]}
+let tableSize = 6;
+let dealerSeatIdx = 0;
+let selectedSeatIdx = null;
+let seats = [];
+let board = {flop:[null,null,null], turn:[null], river:[null]};
+let usedCards = new Set();
+let currentStreet = 'preflop';
+let actions = {preflop:[], flop:[], turn:[], river:[]};
+let foldedPlayers = new Set();
+let handResult = null;
+let activeTags = new Set();
+
+// Card picker state
+let cardPickerMode = null; // 'hole' | 'flop' | 'turn' | 'river'
+let cardPickerSlot = 0;
+let cardPickerSelection = [];
+let cardPickerMaxCards = 2;
+let actingPlayerIdx = null;
+
+// Seat positions around table (percentages of container)
+const SEAT_POSITIONS = {
+  5: [
+    {x:50,y:98},  // BTN
+    {x:6,y:68},   // SB
+    {x:6,y:28},   // BB
+    {x:50,y:2},   // UTG
+    {x:94,y:50},  // CO
+  ],
+  6: [
+    {x:50,y:98},  // BTN
+    {x:8,y:75},   // SB
+    {x:8,y:25},   // BB
+    {x:30,y:2},   // UTG
+    {x:70,y:2},   // MP
+    {x:92,y:50},  // CO
+  ],
+  7: [
+    {x:50,y:98},  // BTN
+    {x:10,y:82},  // SB
+    {x:4,y:50},   // BB
+    {x:16,y:15},  // UTG
+    {x:50,y:2},   // MP
+    {x:84,y:15},  // HJ
+    {x:96,y:50},  // CO
+  ],
+  8: [
+    {x:50,y:98},  // BTN
+    {x:12,y:85},  // SB
+    {x:4,y:58},   // BB
+    {x:4,y:30},   // UTG
+    {x:25,y:5},   // UTG+1
+    {x:55,y:2},   // MP
+    {x:82,y:12},  // HJ
+    {x:96,y:45},  // CO
+  ],
+  9: [
+    {x:50,y:98},  // BTN
+    {x:15,y:88},  // SB
+    {x:4,y:60},   // BB
+    {x:4,y:32},   // UTG
+    {x:20,y:8},   // UTG+1
+    {x:42,y:2},   // MP
+    {x:62,y:2},   // MP+1
+    {x:82,y:12},  // HJ
+    {x:96,y:40},  // CO
+  ]
 };
 
-let numPlayers=9;
-let heroSeat=0; // index in layout
-let villainSeat=2;
-let heroCards=[null,null]; // {r,s}
-let communityCards=[null,null,null,null,null];
-let pickTarget=null; // {type:'hero'|'cc', idx:0}
-let pickRank=null;
-let pickSuit=null;
+const DEALER_OFFSETS = {
+  5: [
+    {x:48,y:85},{x:16,y:62},{x:16,y:36},{x:48,y:15},{x:84,y:48}
+  ],
+  6: [
+    {x:48,y:85},{x:18,y:68},{x:18,y:34},{x:36,y:15},{x:66,y:15},{x:82,y:48}
+  ],
+  7: [
+    {x:48,y:85},{x:18,y:74},{x:14,y:48},{x:24,y:22},{x:48,y:14},{x:76,y:22},{x:86,y:48}
+  ],
+  8: [
+    {x:48,y:85},{x:20,y:76},{x:14,y:54},{x:14,y:36},{x:32,y:16},{x:54,y:14},{x:76,y:20},{x:86,y:44}
+  ],
+  9: [
+    {x:48,y:85},{x:22,y:78},{x:14,y:55},{x:14,y:38},{x:28,y:18},{x:44,y:12},{x:60,y:12},{x:78,y:20},{x:88,y:42}
+  ]
+};
 
-function switchTab(name){
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['setup','action','result'][i]===name));
-  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById('panel-'+name).classList.add('active');
-}
-
-function toggleMax(){
-  const opts=[6,7,8,9];
-  const i=opts.indexOf(numPlayers);
-  numPlayers=opts[(i+1)%4];
-  document.getElementById('maxBtn').textContent=numPlayers+'-max';
-  heroSeat=Math.min(heroSeat,numPlayers-1);
-  villainSeat=Math.min(villainSeat,numPlayers-1);
-  if(heroSeat===villainSeat)villainSeat=(villainSeat+1)%numPlayers;
+function initSeats() {
+  seats = [];
+  for(let i = 0; i < tableSize; i++) {
+    seats.push({name:'', stack:'', cards:[null,null], isHero:false});
+  }
+  foldedPlayers.clear();
+  actions = {preflop:[], flop:[], turn:[], river:[]};
+  selectedSeatIdx = null;
   renderTable();
 }
 
-function renderTable(){
-  const layout=LAYOUTS[numPlayers];
-  let html='<div class="felt"></div>';
-  html+='<div class="pot-display"><div class="pot-label">POT</div><div class="pot-amount">0</div></div>';
+function getPositions() { return POSITIONS[tableSize]; }
+function getSeatPositions() { return SEAT_POSITIONS[tableSize]; }
+function getPositionForSeat(seatIdx) {
+  const positions = getPositions();
+  const offset = (seatIdx - dealerSeatIdx + tableSize) % tableSize;
+  return positions[offset];
+}
 
-  layout.pos.forEach((pos,i)=>{
-    const isHero=i===heroSeat,isVill=i===villainSeat;
-    const cls=isHero?'hero':isVill?'villain':'';
-    const x=layout.xy[i][0],y=layout.xy[i][1];
-    html+=`<div class="seat ${cls}" style="left:${x}%;top:${y}%" onclick="tapSeat(${i})">`;
-    html+=`<div class="seat-dot">S${i+1}</div>`;
-    html+=`<div class="seat-info">S${i+1}<br><span class="seat-pos">${pos}</span></div>`;
-    if(isHero){
-      html+='<div class="seat-cards">';
-      heroCards.forEach((c,ci)=>{
-        if(c){
-          const rk=c.r==='T'?'10':c.r;
-          html+=`<div class="mc ${COL[c.s]}" onclick="event.stopPropagation();pickCard('hero',${ci})">${rk}${SYM[c.s]}</div>`;
-        } else {
-          html+=`<div class="mc" style="background:#2a3550;color:#5a6a8a;cursor:pointer" onclick="event.stopPropagation();pickCard('hero',${ci})">?</div>`;
+function renderTable() {
+  const container = document.getElementById('tableContainer');
+  // Remove old seats and dealer
+  container.querySelectorAll('.seat,.dealer-btn').forEach(el => el.remove());
+
+  const seatPos = getSeatPositions();
+  const dealerPos = DEALER_OFFSETS[tableSize];
+
+  for(let i = 0; i < tableSize; i++) {
+    const s = seats[i];
+    const pos = seatPos[i];
+    const el = document.createElement('div');
+    el.className = 'seat' + (i === selectedSeatIdx ? ' selected' : '') + (s.isHero ? ' hero' : '');
+    el.style.left = pos.x + '%';
+    el.style.top = pos.y + '%';
+    el.onclick = () => selectSeat(i);
+
+    const position = getPositionForSeat(i);
+    const displayName = s.isHero ? 'Hero' : (s.name || `S${i+1}`);
+
+    let cardsHTML = '';
+    if(s.cards[0] || s.cards[1]) {
+      cardsHTML = '<div class="seat-cards">';
+      for(let c = 0; c < 2; c++) {
+        if(s.cards[c]) {
+          const cc = s.cards[c];
+          cardsHTML += `<div class="mini-card ${cc.color}"><span>${cc.rank}</span><span>${cc.suit}</span></div>`;
         }
+      }
+      cardsHTML += '</div>';
+    }
+
+    // Show last action on current street
+    let actionHTML = '';
+    const lastAction = getLastActionForPlayer(i);
+    if(lastAction) {
+      const cls = 'action-' + lastAction.type;
+      const label = lastAction.type === 'allin' ? 'ALL-IN' : lastAction.type.toUpperCase();
+      const amt = lastAction.amount ? ` ${lastAction.amount}` : '';
+      actionHTML = `<span class="seat-action ${cls}">${label}${amt}</span>`;
+    }
+
+    el.innerHTML = `
+      <div class="seat-circle">${displayName.slice(0,3)}</div>
+      <div class="seat-name">${displayName}</div>
+      ${s.stack ? `<div class="seat-stack">${s.stack}</div>` : ''}
+      <div class="seat-position">${position}</div>
+      ${cardsHTML}
+      ${actionHTML}
+    `;
+    container.appendChild(el);
+  }
+
+  // Dealer button
+  const dBtn = document.createElement('div');
+  dBtn.className = 'dealer-btn';
+  dBtn.textContent = 'D';
+  dBtn.style.left = dealerPos[dealerSeatIdx].x + '%';
+  dBtn.style.top = dealerPos[dealerSeatIdx].y + '%';
+  dBtn.onclick = (e) => { e.stopPropagation(); moveDealer(); };
+  container.appendChild(dBtn);
+
+  updatePotDisplay();
+  renderActivePlayers();
+}
+
+function getLastActionForPlayer(seatIdx) {
+  const streetActions = actions[currentStreet];
+  for(let i = streetActions.length - 1; i >= 0; i--) {
+    if(streetActions[i].seatIdx === seatIdx) return streetActions[i];
+  }
+  return null;
+}
+
+function moveDealer() {
+  dealerSeatIdx = (dealerSeatIdx + 1) % tableSize;
+  renderTable();
+}
+
+function selectSeat(idx) {
+  selectedSeatIdx = idx;
+  const s = seats[idx];
+  // Auto-name as villain if hero exists and this seat has no name
+  if(!s.name && !s.isHero && seats.some(x => x.isHero)) {
+    const villainCount = seats.filter((x,i) => i !== idx && !x.isHero && x.name && x.name.match(/^(Villain|V\d)/)).length;
+    s.name = villainCount === 0 ? 'Villain' : `V${villainCount + 1}`;
+  }
+  document.getElementById('seatPanel').style.display = 'block';
+  document.getElementById('seatPanelTitle').textContent = `Seat ${idx+1} (${getPositionForSeat(idx)})`;
+  document.getElementById('seatName').value = s.name;
+  document.getElementById('seatStack').value = s.stack;
+  document.getElementById('heroBtn').classList.toggle('active', s.isHero);
+  renderTable();
+}
+
+function closeSeatPanel() {
+  selectedSeatIdx = null;
+  document.getElementById('seatPanel').style.display = 'none';
+  renderTable();
+}
+
+function updateSeatName() {
+  if(selectedSeatIdx === null) return;
+  seats[selectedSeatIdx].name = document.getElementById('seatName').value;
+  renderTable();
+}
+
+function updateSeatStack() {
+  if(selectedSeatIdx === null) return;
+  seats[selectedSeatIdx].stack = document.getElementById('seatStack').value;
+  renderTable();
+}
+
+function toggleHero() {
+  if(selectedSeatIdx === null) return;
+  // Clear other hero
+  seats.forEach((s,i) => { if(i !== selectedSeatIdx) s.isHero = false; });
+  seats[selectedSeatIdx].isHero = !seats[selectedSeatIdx].isHero;
+  if(seats[selectedSeatIdx].isHero) seats[selectedSeatIdx].name = 'Hero';
+  document.getElementById('heroBtn').classList.toggle('active', seats[selectedSeatIdx].isHero);
+  renderTable();
+}
+
+function clearSeat() {
+  if(selectedSeatIdx === null) return;
+  const s = seats[selectedSeatIdx];
+  // Remove used cards
+  s.cards.forEach(c => { if(c) usedCards.delete(c.rank + c.suit); });
+  seats[selectedSeatIdx] = {name:'', stack:'', cards:[null,null], isHero:false};
+  closeSeatPanel();
+  renderBoard();
+}
+
+// ==================== CARD PICKER ====================
+function openCardPicker(mode, slot) {
+  cardPickerMode = mode;
+  cardPickerSlot = slot || 0;
+  cardPickerSelection = [];
+
+  if(mode === 'hole') {
+    cardPickerMaxCards = 2;
+    document.getElementById('cardPickerTitle').textContent = 'Select Hole Cards';
+    // Pre-select existing cards
+    if(selectedSeatIdx !== null) {
+      seats[selectedSeatIdx].cards.forEach(c => {
+        if(c) cardPickerSelection.push(c.rank + c.suit);
       });
-      html+='</div>';
     }
-    html+='</div>';
+  } else if(mode === 'flop') {
+    cardPickerMaxCards = 3;
+    document.getElementById('cardPickerTitle').textContent = 'Select Flop Cards';
+    board.flop.forEach(c => { if(c) cardPickerSelection.push(c.rank + c.suit); });
+  } else if(mode === 'turn') {
+    cardPickerMaxCards = 1;
+    document.getElementById('cardPickerTitle').textContent = 'Select Turn Card';
+    board.turn.forEach(c => { if(c) cardPickerSelection.push(c.rank + c.suit); });
+  } else if(mode === 'river') {
+    cardPickerMaxCards = 1;
+    document.getElementById('cardPickerTitle').textContent = 'Select River Card';
+    board.river.forEach(c => { if(c) cardPickerSelection.push(c.rank + c.suit); });
+  }
 
-    // Dealer button near BTN seat
-    if(pos==='BTN'){
-      const dx=x<50?x+6:x-6,dy=y<50?y+8:y-8;
-      html+=`<div class="dealer-btn" style="left:${dx}%;top:${dy}%">D</div>`;
-    }
-  });
-
-  document.getElementById('tableContainer').innerHTML=html;
-  renderCommunity();
+  renderCardPicker();
+  document.getElementById('cardPickerModal').classList.add('open');
 }
 
-function tapSeat(i){
-  if(i===heroSeat)return;
-  if(i===villainSeat){villainSeat=-1;renderTable();return}
-  // If no villain set, set villain. Otherwise move villain.
-  villainSeat=i;
-  renderTable();
+function renderCardPicker() {
+  const grid = document.getElementById('cardPickerGrid');
+  grid.innerHTML = '';
+
+  // Build set of currently used cards, excluding cards from this picker context
+  const contextUsed = new Set(usedCards);
+  // Remove cards that belong to current selection context so they appear selectable
+  if(cardPickerMode === 'hole' && selectedSeatIdx !== null) {
+    seats[selectedSeatIdx].cards.forEach(c => { if(c) contextUsed.delete(c.rank + c.suit); });
+  } else if(cardPickerMode === 'flop') {
+    board.flop.forEach(c => { if(c) contextUsed.delete(c.rank + c.suit); });
+  } else if(cardPickerMode === 'turn') {
+    board.turn.forEach(c => { if(c) contextUsed.delete(c.rank + c.suit); });
+  } else if(cardPickerMode === 'river') {
+    board.river.forEach(c => { if(c) contextUsed.delete(c.rank + c.suit); });
+  }
+
+  for(const suit of SUITS) {
+    const label = document.createElement('div');
+    label.className = 'suit-label';
+    label.textContent = suit.symbol + ' ' + suit.name.charAt(0).toUpperCase() + suit.name.slice(1);
+    grid.appendChild(label);
+
+    const row = document.createElement('div');
+    row.className = 'card-grid';
+    for(const rank of RANKS) {
+      const key = rank + suit.symbol;
+      const card = document.createElement('div');
+      card.className = 'card-pick ' + suit.color;
+      if(contextUsed.has(key)) card.classList.add('used');
+      if(cardPickerSelection.includes(key)) card.classList.add('selected');
+      card.innerHTML = `<span>${rank}</span><span>${suit.symbol}</span>`;
+      card.onclick = () => pickCard(key, card);
+      row.appendChild(card);
+    }
+    grid.appendChild(row);
+  }
 }
 
-function renderCommunity(){
-  communityCards.forEach((c,i)=>{
-    const el=document.getElementById('cc'+i);
-    if(c){
-      const rk=c.r==='T'?'10':c.r;
-      el.className='comm-card filled '+COL[c.s];
-      el.textContent=rk+SYM[c.s];
+function pickCard(key, el) {
+  if(el.classList.contains('used')) return;
+  const idx = cardPickerSelection.indexOf(key);
+  if(idx > -1) {
+    cardPickerSelection.splice(idx, 1);
+    el.classList.remove('selected');
+  } else {
+    if(cardPickerSelection.length >= cardPickerMaxCards) {
+      // Remove first selection
+      cardPickerSelection.shift();
+    }
+    cardPickerSelection.push(key);
+    renderCardPicker(); // re-render to update selection highlights
+  }
+}
+
+function parseCardKey(key) {
+  // key like "A♠" or "10♥"
+  const suitChar = key.slice(-1);
+  const rank = key.slice(0, -1);
+  const suitObj = SUITS.find(s => s.symbol === suitChar);
+  return {rank, suit: suitChar, color: suitObj ? suitObj.color : 'black'};
+}
+
+function confirmCardPicker() {
+  // Remove old used cards from context
+  if(cardPickerMode === 'hole' && selectedSeatIdx !== null) {
+    seats[selectedSeatIdx].cards.forEach(c => { if(c) usedCards.delete(c.rank + c.suit); });
+    seats[selectedSeatIdx].cards = [null, null];
+    cardPickerSelection.forEach((key, i) => {
+      if(i < 2) {
+        const parsed = parseCardKey(key);
+        seats[selectedSeatIdx].cards[i] = parsed;
+        usedCards.add(key);
+      }
+    });
+  } else if(cardPickerMode === 'flop') {
+    board.flop.forEach(c => { if(c) usedCards.delete(c.rank + c.suit); });
+    board.flop = [null, null, null];
+    cardPickerSelection.forEach((key, i) => {
+      if(i < 3) {
+        board.flop[i] = parseCardKey(key);
+        usedCards.add(key);
+      }
+    });
+  } else if(cardPickerMode === 'turn') {
+    board.turn.forEach(c => { if(c) usedCards.delete(c.rank + c.suit); });
+    board.turn = [null];
+    if(cardPickerSelection[0]) {
+      board.turn[0] = parseCardKey(cardPickerSelection[0]);
+      usedCards.add(cardPickerSelection[0]);
+    }
+  } else if(cardPickerMode === 'river') {
+    board.river.forEach(c => { if(c) usedCards.delete(c.rank + c.suit); });
+    board.river = [null];
+    if(cardPickerSelection[0]) {
+      board.river[0] = parseCardKey(cardPickerSelection[0]);
+      usedCards.add(cardPickerSelection[0]);
+    }
+  } else if(cardPickerMode === 'showdown' && showdownPickerSeatIdx !== null) {
+    const old = seats[showdownPickerSeatIdx].cards[cardPickerSlot];
+    if(old) usedCards.delete(old.rank + old.suit);
+    if(cardPickerSelection[0]) {
+      const parsed = parseCardKey(cardPickerSelection[0]);
+      seats[showdownPickerSeatIdx].cards[cardPickerSlot] = parsed;
+      usedCards.add(cardPickerSelection[0]);
     } else {
-      el.className='comm-card';
-      el.textContent='';
+      seats[showdownPickerSeatIdx].cards[cardPickerSlot] = null;
+    }
+    showdownPickerSeatIdx = null;
+  }
+
+  closeCardPicker();
+  renderTable();
+  renderBoard();
+  if(document.getElementById('tab-result').classList.contains('active')) renderShowdown();
+}
+
+function closeCardPicker() {
+  document.getElementById('cardPickerModal').classList.remove('open');
+}
+
+function renderBoard() {
+  const row = document.getElementById('boardRow');
+  const slots = row.querySelectorAll('.board-slot');
+  // Flop
+  for(let i = 0; i < 3; i++) {
+    const slot = slots[i];
+    const c = board.flop[i];
+    if(c) {
+      slot.innerHTML = `<div class="card ${c.color}" onclick="event.stopPropagation();openCardPicker('flop',0)"><span class="rank">${c.rank}</span><span class="suit">${c.suit}</span></div>`;
+      slot.classList.add('filled');
+      if(i === 0) slot.innerHTML += '<span class="board-street-label">Flop</span>';
+    } else {
+      slot.innerHTML = i === 0 ? '<span class="board-street-label">Flop</span>' : '';
+      slot.classList.remove('filled');
+    }
+  }
+  // Turn
+  const turnSlot = slots[3];
+  const tc = board.turn[0];
+  if(tc) {
+    turnSlot.innerHTML = `<div class="card ${tc.color}" onclick="event.stopPropagation();openCardPicker('turn',0)"><span class="rank">${tc.rank}</span><span class="suit">${tc.suit}</span></div><span class="board-street-label">Turn</span>`;
+    turnSlot.classList.add('filled');
+  } else {
+    turnSlot.innerHTML = '<span class="board-street-label">Turn</span>';
+    turnSlot.classList.remove('filled');
+  }
+  // River
+  const riverSlot = slots[4];
+  const rc = board.river[0];
+  if(rc) {
+    riverSlot.innerHTML = `<div class="card ${rc.color}" onclick="event.stopPropagation();openCardPicker('river',0)"><span class="rank">${rc.rank}</span><span class="suit">${rc.suit}</span></div><span class="board-street-label">River</span>`;
+    riverSlot.classList.add('filled');
+  } else {
+    riverSlot.innerHTML = '<span class="board-street-label">River</span>';
+    riverSlot.classList.remove('filled');
+  }
+}
+
+// ==================== STREET ACTIONS ====================
+function switchStreet(street) {
+  currentStreet = street;
+  document.querySelectorAll('.street-tab').forEach(t => t.classList.toggle('active', t.dataset.street === street));
+  actingPlayerIdx = null;
+  document.getElementById('actionButtons').classList.remove('visible');
+  document.getElementById('actionAmount').classList.remove('visible');
+  renderActivePlayers();
+  renderTimeline();
+  renderTable();
+  updatePotDisplay();
+}
+
+function getActiveSeats() {
+  // Return seats that have a name or are hero and haven't folded in a previous street
+  const result = [];
+  // Compute fold status up to current street
+  const streetOrder = ['preflop','flop','turn','river'];
+  const currentIdx = streetOrder.indexOf(currentStreet);
+  const folded = new Set();
+  for(let si = 0; si <= currentIdx; si++) {
+    const st = streetOrder[si];
+    actions[st].forEach(a => { if(a.type === 'fold') folded.add(a.seatIdx); });
+  }
+
+  for(let i = 0; i < tableSize; i++) {
+    const s = seats[i];
+    if(s.name || s.isHero) {
+      result.push({seatIdx: i, folded: folded.has(i)});
+    }
+  }
+  return result;
+}
+
+function renderActivePlayers() {
+  const container = document.getElementById('activePlayers');
+  const active = getActiveSeats();
+  container.innerHTML = '';
+  active.forEach(({seatIdx, folded}) => {
+    const s = seats[seatIdx];
+    const pos = getPositionForSeat(seatIdx);
+    const name = s.isHero ? 'Hero' : s.name;
+    const chip = document.createElement('div');
+    chip.className = 'player-chip' + (folded ? ' folded' : '') + (seatIdx === actingPlayerIdx ? ' acting' : '');
+    chip.innerHTML = `<span class="chip-pos">${pos}</span> ${name}`;
+    if(!folded) {
+      chip.onclick = () => selectActingPlayer(seatIdx);
+    }
+    container.appendChild(chip);
+  });
+}
+
+function selectActingPlayer(seatIdx) {
+  actingPlayerIdx = seatIdx;
+  document.getElementById('actionButtons').classList.add('visible');
+  renderActivePlayers();
+  // Show amount input for bet/raise
+  const amtInput = document.getElementById('actionAmount');
+  amtInput.classList.add('visible');
+  amtInput.value = '';
+}
+
+function logAction(type) {
+  if(actingPlayerIdx === null) return;
+  const amount = document.getElementById('actionAmount').value;
+  const entry = {
+    seatIdx: actingPlayerIdx,
+    type: type,
+    amount: (type === 'bet' || type === 'raise' || type === 'allin' || type === 'call') ? (amount || '') : '',
+    playerName: seats[actingPlayerIdx].isHero ? 'Hero' : seats[actingPlayerIdx].name,
+    position: getPositionForSeat(actingPlayerIdx)
+  };
+  actions[currentStreet].push(entry);
+
+  if(type === 'fold') {
+    foldedPlayers.add(actingPlayerIdx);
+  }
+
+  actingPlayerIdx = null;
+  document.getElementById('actionButtons').classList.remove('visible');
+  document.getElementById('actionAmount').classList.remove('visible');
+  renderActivePlayers();
+  renderTimeline();
+  renderTable();
+  updatePotDisplay();
+}
+
+function renderTimeline() {
+  const container = document.getElementById('actionTimeline');
+  const streetActions = actions[currentStreet];
+  container.innerHTML = '';
+  streetActions.forEach((a, i) => {
+    const actionColors = {fold:'var(--red)',check:'var(--green)',call:'#60a5fa',bet:'#fbbf24',raise:'#fbbf24',allin:'#ff6b6b'};
+    const label = a.type === 'allin' ? 'ALL-IN' : a.type.charAt(0).toUpperCase() + a.type.slice(1);
+    const div = document.createElement('div');
+    div.className = 'timeline-entry';
+    div.innerHTML = `
+      <span class="timeline-player">${a.position} ${a.playerName}</span>
+      <span class="timeline-action" style="color:${actionColors[a.type]}">${label}</span>
+      ${a.amount ? `<span class="timeline-amount">${a.amount}</span>` : ''}
+      <button class="timeline-delete" onclick="deleteAction('${currentStreet}',${i})">&times;</button>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function deleteAction(street, idx) {
+  const a = actions[street][idx];
+  if(a.type === 'fold') foldedPlayers.delete(a.seatIdx);
+  actions[street].splice(idx, 1);
+  renderTimeline();
+  renderActivePlayers();
+  renderTable();
+  updatePotDisplay();
+}
+
+function calculatePot() {
+  let pot = 0;
+  // Add blinds
+  const blindsStr = document.getElementById('blinds').value;
+  const parts = blindsStr.split('/');
+  if(parts.length === 2) {
+    pot += parseFloat(parts[0]) || 0;
+    pot += parseFloat(parts[1]) || 0;
+  }
+  const straddle = parseFloat(document.getElementById('straddle').value) || 0;
+  pot += straddle;
+
+  // Sum all bet/raise/call/allin amounts across all streets
+  ['preflop','flop','turn','river'].forEach(st => {
+    actions[st].forEach(a => {
+      if(a.amount && (a.type === 'bet' || a.type === 'raise' || a.type === 'call' || a.type === 'allin')) {
+        pot += parseFloat(a.amount) || 0;
+      }
+    });
+  });
+  return pot;
+}
+
+function updatePotDisplay() {
+  const pot = calculatePot();
+  document.getElementById('potDisplay').textContent = pot;
+  document.getElementById('streetPotAmount').textContent = pot;
+}
+
+// ==================== TABLE SIZE ====================
+function changeTableSize(size) {
+  tableSize = size;
+  dealerSeatIdx = 0;
+  document.getElementById('tableToggle').value = tableSize;
+  initSeats();
+}
+
+// ==================== MAIN TABS ====================
+function switchMainTab(tab) {
+  document.querySelectorAll('.main-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.toggle('active', t.id === 'tab-' + tab));
+  if(tab === 'action') {
+    renderActivePlayers();
+    renderTimeline();
+    updatePotDisplay();
+  }
+  if(tab === 'result') {
+    renderShowdown();
+  }
+}
+
+// ==================== RESULT ====================
+function setResult(r) {
+  handResult = r;
+  document.getElementById('resultWon').classList.toggle('active', r === 'won');
+  document.getElementById('resultLost').classList.toggle('active', r === 'lost');
+}
+
+function toggleTag(el) {
+  const tag = el.dataset.tag;
+  if(activeTags.has(tag)) {
+    activeTags.delete(tag);
+    el.classList.remove('active');
+  } else {
+    activeTags.add(tag);
+    el.classList.add('active');
+  }
+}
+
+// ==================== SHOWDOWN ====================
+let showdownPickerSeatIdx = null;
+
+function renderShowdown() {
+  const el = document.getElementById('showdownSection');
+  // Show all named seats (hero + villains)
+  const namedSeats = seats.map((s,i) => ({...s, idx:i})).filter(s => s.name || s.isHero);
+  if(!namedSeats.length) {
+    el.innerHTML = '<div style="font-size:.75rem;color:var(--dim);padding:8px 0;">Set up players in the Setup tab first.</div>';
+    return;
+  }
+  let html = '';
+  namedSeats.forEach(s => {
+    const displayName = s.isHero ? 'Hero' : s.name;
+    const pos = getPositionForSeat(s.idx);
+    const borderColor = s.isHero ? 'var(--green)' : 'var(--red)';
+    html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(42,53,80,.3);">`;
+    html += `<div style="min-width:70px;"><span style="font-size:.8rem;font-weight:700;color:${borderColor};">${displayName}</span><br><span style="font-size:.6rem;color:var(--dim);">${pos}</span></div>`;
+    html += `<div style="display:flex;gap:3px;">`;
+    for(let c = 0; c < 2; c++) {
+      if(s.cards[c]) {
+        const cc = s.cards[c];
+        html += `<div class="mini-card ${cc.color}" style="width:28px;height:38px;font-size:.55rem;line-height:1;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;" onclick="openShowdownPicker(${s.idx},${c})"><span>${cc.rank}</span><span>${cc.suit}</span></div>`;
+      } else {
+        html += `<div style="width:28px;height:38px;border:2px dashed var(--border);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:.6rem;color:var(--dim);cursor:pointer;" onclick="openShowdownPicker(${s.idx},${c})">?</div>`;
+      }
+    }
+    html += `</div>`;
+    html += `</div>`;
+  });
+  el.innerHTML = html;
+}
+
+function openShowdownPicker(seatIdx, cardSlot) {
+  showdownPickerSeatIdx = seatIdx;
+  cardPickerSlot = cardSlot;
+  cardPickerMode = 'showdown';
+  cardPickerSelection = [];
+  cardPickerMaxCards = 1;
+
+  const existing = seats[seatIdx].cards[cardSlot];
+  if(existing) {
+    cardPickerSelection = [{ rank: existing.rank, suit: existing.suit, color: existing.color }];
+  }
+
+  document.getElementById('cardPickerTitle').textContent = `${seats[seatIdx].isHero ? 'Hero' : seats[seatIdx].name} — Card ${cardSlot + 1}`;
+  renderCardPicker();
+  document.getElementById('cardPickerModal').classList.add('open');
+}
+
+// ==================== RECAP ====================
+function generateRecap() {
+  const overlay = document.getElementById('recapOverlay');
+  const content = document.getElementById('recapContent');
+
+  const heroSeat = seats.find(s => s.isHero);
+  const heroIdx = seats.findIndex(s => s.isHero);
+  const heroPos = heroIdx >= 0 ? getPositionForSeat(heroIdx) : '?';
+  const blinds = document.getElementById('blinds').value || '?/?';
+  const gameType = document.getElementById('gameType').value;
+  const pot = calculatePot();
+  const notes = document.getElementById('handNotes').value;
+
+  function cardHTML(c, small) {
+    if(!c) return '';
+    const w = small ? 40 : 44;
+    const h = small ? 56 : 62;
+    return `<div class="card ${c.color}" style="width:${w}px;height:${h}px;cursor:default;"><span class="rank">${c.rank}</span><span class="suit">${c.suit}</span></div>`;
+  }
+
+  // Hero cards
+  let heroCardsHTML = '';
+  if(heroSeat && (heroSeat.cards[0] || heroSeat.cards[1])) {
+    heroCardsHTML = `<div class="recap-cards-group">${heroSeat.cards.map(c => cardHTML(c)).join('')}</div>`;
+  }
+
+  // Villain cards
+  let villainCardsHTML = '';
+  seats.forEach((s, i) => {
+    if(i !== heroIdx && (s.cards[0] || s.cards[1]) && (s.name || !s.isHero)) {
+      const pos = getPositionForSeat(i);
+      const name = s.name || `Seat ${i+1}`;
+      villainCardsHTML += `
+        <span class="recap-vs">${name} (${pos})</span>
+        <div class="recap-cards-group">${s.cards.map(c => cardHTML(c)).join('')}</div>
+      `;
     }
   });
-}
 
-// Card picker
-function pickCard(type,idx){
-  pickTarget={type,idx};
-  const existing=type==='hero'?heroCards[idx]:communityCards[idx];
-  pickRank=existing?existing.r:null;
-  pickSuit=existing?existing.s:null;
-  renderModal();
-  document.getElementById('cardModal').classList.add('show');
-}
+  // Board
+  let boardHTML = '';
+  const allBoard = [...board.flop, ...board.turn, ...board.river].filter(Boolean);
+  if(allBoard.length > 0) {
+    boardHTML = '<div class="recap-board-label">Board</div><div class="recap-board-cards">';
+    board.flop.forEach(c => { if(c) boardHTML += cardHTML(c, true); });
+    if(board.turn[0]) {
+      boardHTML += '<div class="board-divider" style="width:1px;height:40px;background:#3a4a6a;margin:0 4px;"></div>';
+      boardHTML += cardHTML(board.turn[0], true);
+    }
+    if(board.river[0]) {
+      boardHTML += '<div class="board-divider" style="width:1px;height:40px;background:#3a4a6a;margin:0 4px;"></div>';
+      boardHTML += cardHTML(board.river[0], true);
+    }
+    boardHTML += '</div>';
+  }
 
-function renderModal(){
-  const titles={hero:'Your Card',cc:'Community Card'};
-  document.getElementById('modalTitle').textContent=titles[pickTarget.type]||'Pick a Card';
-  let rhtml='';
-  RANKS.forEach(r=>{
-    rhtml+=`<div class="rank-btn${pickRank===r?' selected':''}" onclick="pickRank='${r}';renderModal()">${r==='T'?'10':r}</div>`;
+  // Street actions
+  let streetsHTML = '';
+  ['preflop','flop','turn','river'].forEach(st => {
+    if(actions[st].length === 0) return;
+    const actionsText = actions[st].map(a => {
+      const label = a.type === 'allin' ? 'ALL-IN' : a.type.charAt(0).toUpperCase() + a.type.slice(1);
+      return `<strong>${a.playerName}</strong> (${a.position}) ${label}${a.amount ? ' ' + a.amount : ''}`;
+    }).join(' &rarr; ');
+    streetsHTML += `
+      <div class="recap-street">
+        <div class="recap-street-title">${st.charAt(0).toUpperCase() + st.slice(1)}</div>
+        <div class="recap-street-actions">${actionsText}</div>
+      </div>
+    `;
   });
-  document.getElementById('rankGrid').innerHTML=rhtml;
-  let shtml='';
-  SUITS.forEach(s=>{
-    shtml+=`<div class="suit-btn ${s.c}${pickSuit===s.k?' selected':''}" onclick="pickSuit='${s.k}';renderModal()">${s.sym}</div>`;
-  });
-  document.getElementById('suitGrid').innerHTML=shtml;
+
+  // Tags
+  let tagsHTML = '';
+  if(activeTags.size > 0) {
+    const tagColors = {bluff:'#3b1f4a;color:#c084fc',cooler:'#3b2a1a;color:#fbbf24','hero fold':'#1a2a4a;color:#60a5fa','value bet':'#1a3a2a;color:#4ade80','slow play':'#3b1a3b;color:#e879f9','3-bet pot':'#3b2a1a;color:#fb923c'};
+    tagsHTML = '<div class="recap-tags">';
+    activeTags.forEach(tag => {
+      const style = tagColors[tag] || '#1a2a3a;color:#8b9dc3';
+      tagsHTML += `<span class="recap-tag" style="background:${style}">${tag}</span>`;
+    });
+    tagsHTML += '</div>';
+  }
+
+  // Result
+  let resultHTML = '';
+  if(handResult) {
+    const cls = handResult === 'won' ? 'won' : 'lost';
+    const color = handResult === 'won' ? 'var(--green)' : 'var(--red)';
+    resultHTML = `
+      <div class="recap-result ${cls}">
+        <div class="result-text" style="color:${color}">${handResult === 'won' ? 'Won' : 'Lost'}</div>
+        <div class="result-pot">Pot: ${pot}</div>
+      </div>
+    `;
+  }
+
+  content.innerHTML = `
+    <div class="recap-card">
+      <div class="recap-header">
+        <h2>Hand Recap</h2>
+        <div class="recap-meta">${gameType.charAt(0).toUpperCase() + gameType.slice(1)} | ${blinds} | ${tableSize}-max</div>
+      </div>
+
+      <div class="recap-positions">
+        <span class="recap-position">Hero: ${heroPos}</span>
+      </div>
+
+      <div class="recap-cards-row">
+        ${heroCardsHTML}
+        ${villainCardsHTML}
+      </div>
+
+      ${boardHTML}
+      ${streetsHTML}
+      ${resultHTML}
+      ${tagsHTML}
+      ${notes ? `<div class="recap-notes">${notes}</div>` : ''}
+    </div>
+  `;
+
+  overlay.classList.add('open');
 }
 
-function confirmCard(){
-  if(!pickRank||!pickSuit)return;
-  const card={r:pickRank,s:pickSuit};
-  if(pickTarget.type==='hero')heroCards[pickTarget.idx]=card;
-  else communityCards[pickTarget.idx]=card;
-  closeModal();
+function closeRecap() {
+  document.getElementById('recapOverlay').classList.remove('open');
+}
+
+// ==================== VOICE RECORDING ====================
+let mediaRecorder = null;
+let audioChunks = [];
+let voiceTimerInterval = null;
+let voiceStartTime = null;
+let isRecording = false;
+
+function toggleVoiceRecording() {
+  if (isRecording) {
+    stopAndTranscribe();
+  } else {
+    startVoiceRecording();
+  }
+}
+
+async function startVoiceRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+    audioChunks = [];
+
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) audioChunks.push(e.data);
+    };
+
+    mediaRecorder.start(1000);
+    isRecording = true;
+    voiceStartTime = Date.now();
+
+    document.getElementById('micBtn').classList.add('recording');
+    document.getElementById('voiceOverlay').classList.add('active');
+    document.getElementById('voiceStatus').textContent = 'Recording...';
+    document.getElementById('voiceTranscript').textContent = '';
+    document.getElementById('voiceTranscript').classList.remove('has-text');
+    document.getElementById('voiceStopBtn').disabled = false;
+    document.getElementById('voiceStopBtn').textContent = 'Stop & Process';
+    document.getElementById('voiceStopBtn').classList.remove('processing');
+
+    voiceTimerInterval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - voiceStartTime) / 1000);
+      const mins = Math.floor(elapsed / 60);
+      const secs = elapsed % 60;
+      document.getElementById('voiceTimer').textContent = mins + ':' + String(secs).padStart(2, '0');
+    }, 200);
+  } catch (err) {
+    alert('Microphone access denied. Please allow microphone access.');
+  }
+}
+
+function cancelVoiceRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+    mediaRecorder.stream.getTracks().forEach(t => t.stop());
+  }
+  isRecording = false;
+  clearInterval(voiceTimerInterval);
+  document.getElementById('micBtn').classList.remove('recording');
+  document.getElementById('voiceOverlay').classList.remove('active');
+  document.getElementById('voiceTimer').textContent = '0:00';
+}
+
+async function stopAndTranscribe() {
+  if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
+
+  document.getElementById('voiceStopBtn').disabled = true;
+  document.getElementById('voiceStopBtn').textContent = 'Processing...';
+  document.getElementById('voiceStopBtn').classList.add('processing');
+  document.getElementById('voiceStatus').textContent = 'Transcribing...';
+
+  return new Promise((resolve) => {
+    mediaRecorder.onstop = async () => {
+      mediaRecorder.stream.getTracks().forEach(t => t.stop());
+      isRecording = false;
+      clearInterval(voiceTimerInterval);
+      document.getElementById('micBtn').classList.remove('recording');
+
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
+
+      try {
+        document.getElementById('voiceStatus').textContent = 'Transcribing audio...';
+        const resp = await fetch('/api/transcribe', { method: 'POST', body: formData });
+        const data = await resp.json();
+
+        if (data.text) {
+          document.getElementById('voiceTranscript').textContent = data.text;
+          document.getElementById('voiceTranscript').classList.add('has-text');
+          document.getElementById('voiceStatus').textContent = 'Parsing hand...';
+
+          // Parse and auto-fill
+          parseVoiceToHand(data.text);
+          document.getElementById('voiceStatus').textContent = 'Done! Hand updated.';
+
+          setTimeout(() => {
+            document.getElementById('voiceOverlay').classList.remove('active');
+            document.getElementById('voiceTimer').textContent = '0:00';
+          }, 1500);
+        } else {
+          document.getElementById('voiceStatus').textContent = 'Could not transcribe. Try again.';
+          document.getElementById('voiceStopBtn').disabled = false;
+          document.getElementById('voiceStopBtn').textContent = 'Retry';
+          document.getElementById('voiceStopBtn').classList.remove('processing');
+        }
+      } catch (err) {
+        document.getElementById('voiceStatus').textContent = 'Error: ' + err.message;
+        document.getElementById('voiceStopBtn').disabled = false;
+        document.getElementById('voiceStopBtn').textContent = 'Retry';
+        document.getElementById('voiceStopBtn').classList.remove('processing');
+      }
+      resolve();
+    };
+    mediaRecorder.stop();
+  });
+}
+
+function parseVoiceToHand(text) {
+  const t = text.toLowerCase();
+
+  // Parse blinds
+  const blindsMatch = t.match(/(\d+)[\/\-](\d+)/);
+  if (blindsMatch) {
+    const blindsVal = blindsMatch[1] + '/' + blindsMatch[2];
+    const blindsSelect = document.getElementById('blinds');
+    for (let opt of blindsSelect.options) {
+      if (opt.value === blindsVal) { blindsSelect.value = blindsVal; break; }
+    }
+  }
+
+  // Parse straddle
+  const straddleMatch = t.match(/strad(?:dle)?\s*(?:of\s*)?(?:\$)?(\d+)/i);
+  if (straddleMatch) {
+    document.getElementById('straddle').value = straddleMatch[1];
+  }
+
+  // Parse table size
+  const tableSizeMatch = t.match(/(\d)\s*(?:max|handed|players)/);
+  if (tableSizeMatch) {
+    const size = parseInt(tableSizeMatch[1]);
+    if (size >= 5 && size <= 9) {
+      changeTableSize(size);
+    }
+  }
+
+  // Parse hero cards
+  const cardMap = {
+    'ace': 'A', 'king': 'K', 'queen': 'Q', 'jack': 'J', 'ten': '10',
+    'nine': '9', 'eight': '8', 'seven': '7', 'six': '6', 'five': '5',
+    'four': '4', 'three': '3', 'two': '2', 'deuce': '2',
+    'a': 'A', 'k': 'K', 'q': 'Q', 'j': 'J', 't': '10'
+  };
+  const suitMap = {
+    'spade': '♠', 'spades': '♠', 'heart': '♥', 'hearts': '♥',
+    'diamond': '♦', 'diamonds': '♦', 'club': '♣', 'clubs': '♣',
+    'of spades': '♠', 'of hearts': '♥', 'of diamonds': '♦', 'of clubs': '♣'
+  };
+  const suitColorMap = { '♠': 'black', '♥': 'red', '♦': 'red', '♣': 'black' };
+
+  function parseCard(str) {
+    str = str.trim().toLowerCase();
+    // Try "ace of spades" format
+    for (const [name, rank] of Object.entries(cardMap)) {
+      for (const [suitName, suit] of Object.entries(suitMap)) {
+        if (str.includes(name) && str.includes(suitName.replace('of ', ''))) {
+          return { rank, suit, color: suitColorMap[suit] };
+        }
+      }
+    }
+    // Try shorthand "Ah", "Ks" etc
+    const shortMatch = str.match(/([akqjt2-9]|10)([shdc♠♥♦♣])/i);
+    if (shortMatch) {
+      const rank = cardMap[shortMatch[1].toLowerCase()] || shortMatch[1].toUpperCase();
+      const suitChar = shortMatch[2].toLowerCase();
+      const suitLookup = { s: '♠', h: '♥', d: '♦', c: '♣', '♠': '♠', '♥': '♥', '♦': '♦', '♣': '♣' };
+      const suit = suitLookup[suitChar] || '♠';
+      return { rank, suit, color: suitColorMap[suit] };
+    }
+    return null;
+  }
+
+  // Try to find "I had X Y" or "my hand was X Y" or "pocket X"
+  const heroHandMatch = t.match(/(?:i had|i have|my hand|i got|holding|pocket)\s+(.+?)(?:\.|,|on|from|in|$)/i);
+  if (heroHandMatch) {
+    const handStr = heroHandMatch[1];
+    // Pocket pair
+    const pocketMatch = handStr.match(/pocket\s+(\w+)/);
+    if (pocketMatch) {
+      const rank = cardMap[pocketMatch[1]] || pocketMatch[1].toUpperCase();
+      if (rank) {
+        // Assign two cards of that rank with different suits
+        const heroIdx = seats.findIndex(s => s.isHero);
+        const idx = heroIdx >= 0 ? heroIdx : 0;
+        seats[idx].isHero = true;
+        seats[idx].cards[0] = { rank, suit: '♠', color: 'black' };
+        seats[idx].cards[1] = { rank, suit: '♥', color: 'red' };
+        usedCards.add(rank + '♠');
+        usedCards.add(rank + '♥');
+      }
+    }
+  }
+
+  // Parse hero position
+  const posMap = {
+    'utg': 'UTG', 'utg+1': 'UTG+1', 'utg plus 1': 'UTG+1',
+    'mp': 'MP', 'middle position': 'MP', 'mp+1': 'MP+1',
+    'hijack': 'HJ', 'hj': 'HJ',
+    'cutoff': 'CO', 'co': 'CO', 'cut off': 'CO',
+    'button': 'BTN', 'btn': 'BTN', 'dealer': 'BTN',
+    'small blind': 'SB', 'sb': 'SB',
+    'big blind': 'BB', 'bb': 'BB'
+  };
+
+  const posMatch = t.match(/(?:i(?:'m| am| was)?\s+(?:on|in|at|from)\s+(?:the\s+)?|my position (?:is|was)\s+)([\w\s+]+?)(?:\.|,|and|with|$)/i);
+  if (posMatch) {
+    const posStr = posMatch[1].trim().toLowerCase();
+    const pos = posMap[posStr];
+    if (pos) {
+      const positions = getPositions();
+      const posIdx = positions.indexOf(pos);
+      if (posIdx >= 0) {
+        // Set dealer so hero ends up in that position
+        const heroIdx = seats.findIndex(s => s.isHero);
+        const idx = heroIdx >= 0 ? heroIdx : 0;
+        seats[idx].isHero = true;
+        dealerSeatIdx = (idx - posIdx + tableSize) % tableSize;
+      }
+    }
+  }
+
+  // Parse result
+  if (t.includes('won') || t.includes('i win') || t.includes('took it down') || t.includes('scooped')) {
+    handResult = 'won';
+    document.querySelectorAll('.result-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('[onclick*="won"]')?.classList.add('active');
+  } else if (t.includes('lost') || t.includes('i lose') || t.includes('busted')) {
+    handResult = 'lost';
+    document.querySelectorAll('.result-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('[onclick*="lost"]')?.classList.add('active');
+  }
+
   renderTable();
+  renderBoard();
 }
 
-function clearCard(){
-  if(pickTarget.type==='hero')heroCards[pickTarget.idx]=null;
-  else communityCards[pickTarget.idx]=null;
-  closeModal();
-  renderTable();
-}
-
-function closeModal(){
-  document.getElementById('cardModal').classList.remove('show');
-  pickTarget=null;pickRank=null;pickSuit=null;
-}
-
-function showRecap(){
-  const layout=LAYOUTS[numPlayers];
-  const hc=heroCards.filter(Boolean).map(c=>(c.r==='T'?'10':c.r)+SYM[c.s]).join(' ');
-  const heroPos=layout.pos[heroSeat];
-  const villPos=villainSeat>=0?layout.pos[villainSeat]:'?';
-  const blinds=document.getElementById('blinds').value||'?';
-  const straddle=document.getElementById('straddle').value;
-  const game=document.getElementById('gameType').value;
-  const board=communityCards.filter(Boolean).map(c=>(c.r==='T'?'10':c.r)+SYM[c.s]).join(' ');
-  const result=document.getElementById('result').value;
-  const amount=document.getElementById('resultAmount').value;
-  const villain=document.getElementById('villainHand').value;
-  const notes=document.getElementById('notes').value;
-
-  let txt=`HAND \u2014 ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}\n`;
-  txt+=`${game} ${blinds}${straddle&&straddle!=='0'?' (straddle '+straddle+')':''} | ${numPlayers}-max\n`;
-  txt+=`Hero: ${heroPos} | Villain: ${villPos}\n\n`;
-  txt+=`HOLE CARDS: ${hc||'?'}\n\n`;
-  const pre=document.getElementById('actPre').value;if(pre)txt+=`PREFLOP:\n${pre}\n\n`;
-  const flop=communityCards.slice(0,3).filter(Boolean);
-  if(flop.length===3){txt+=`FLOP: ${flop.map(c=>(c.r==='T'?'10':c.r)+SYM[c.s]).join(' ')}\n`;const af=document.getElementById('actFlop').value;if(af)txt+=af+'\n';txt+='\n'}
-  const turn=communityCards[3];if(turn){txt+=`TURN: ${(turn.r==='T'?'10':turn.r)+SYM[turn.s]}\n`;const at=document.getElementById('actTurn').value;if(at)txt+=at+'\n';txt+='\n'}
-  const river=communityCards[4];if(river){txt+=`RIVER: ${(river.r==='T'?'10':river.r)+SYM[river.s]}\n`;const ar=document.getElementById('actRiver').value;if(ar)txt+=ar+'\n';txt+='\n'}
-  if(amount){txt+=`RESULT: ${result} ${result==='Lost'?'-':'+'}$${amount}`;if(villain)txt+=` | Villain: ${villain}`;txt+='\n'}
-  if(notes)txt+=`\nNOTES:\n${notes}\n`;
-
-  navigator.clipboard.writeText(txt).then(()=>{
-    const t=document.getElementById('toast');t.textContent='Recap copied!';t.className='toast show';setTimeout(()=>t.className='toast',2000);
-  }).catch(()=>{
-    alert(txt);
-  });
-}
-
-// Init
-renderTable();
+// ==================== INIT ====================
+initSeats();
+renderBoard();
 </script>
 </body>
 </html>
