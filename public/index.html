@@ -3,10 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<title>Poker Hand Builder v2</title>
+<title>Poker Hand Builder</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
@@ -1155,6 +1152,7 @@ function selectActingPlayer(seatIdx) {
 
 function logAction(type) {
   if(actingPlayerIdx === null) return;
+  // Will auto-save after action is logged (see end of function)
   let amount = document.getElementById('actionAmount').value;
   // Auto-fill call amount
   if (type === 'call' && (!amount || amount === '0')) {
@@ -1287,29 +1285,15 @@ function getRemainingStack(seatIdx) {
   if (startStack === 0) return 0;
   let totalInvested = 0;
 
-  // Sum all amounts this player has put in across all streets up to current
+  // Sum all amounts this player has put in across ALL streets
   const streetOrder = ['preflop', 'flop', 'turn', 'river'];
-  const currentStreetIdx = streetOrder.indexOf(currentStreet);
-
-  for (let si = 0; si <= currentStreetIdx; si++) {
-    const st = streetOrder[si];
+  for (const st of streetOrder) {
     actions[st].forEach(a => {
       if (a.seatIdx === seatIdx && a.amount) {
         totalInvested += parseFloat(a.amount) || 0;
       }
     });
   }
-
-  // Also account for blinds/straddle if this player is SB, BB, or straddle
-  const pos = getPositionForSeat(seatIdx);
-  const blindsStr = document.getElementById('blinds').value;
-  const parts = blindsStr.split('/');
-  if (pos === 'SB') totalInvested += parseFloat(parts[0]) || 0;
-  if (pos === 'BB') totalInvested += parseFloat(parts[1]) || 0;
-  const straddle = parseFloat(document.getElementById('straddle').value) || 0;
-  // Straddle is typically UTG or the position after BB
-  // For simplicity, if there's a straddle and this is the first position after BB, add it
-  // Actually, straddle is posted by specific seat — skip auto-adding for now
 
   return Math.max(0, Math.round(startStack - totalInvested));
 }
@@ -1544,9 +1528,25 @@ function generateRecap(mode) {
     if (actions[st].length === 0) return '';
     const actText = actions[st].map(a => {
       const label = a.type === 'allin' ? 'ALL-IN' : a.type.charAt(0).toUpperCase() + a.type.slice(1);
-      return `<strong>${a.playerName}</strong> (${a.position}) ${label}${a.amount ? ' ' + a.amount : ''}`;
+      return `<strong>${a.playerName}</strong> (${a.position}) ${label}${a.amount ? ' $' + a.amount : ''}`;
     }).join(' &rarr; ');
     return `<div class="recap-street"><div class="recap-street-actions">${actText}</div></div>`;
+  }
+
+  // Calculate hero stack remaining after each street
+  function heroStackAfterStreet(upToStreet) {
+    if (heroIdx < 0 || !heroSeat || !heroSeat.stack) return '';
+    const startStack = parseFloat(heroSeat.stack) || 0;
+    let invested = 0;
+    const streetOrder = ['preflop', 'flop', 'turn', 'river'];
+    for (const st of streetOrder) {
+      actions[st].forEach(a => {
+        if (a.seatIdx === heroIdx && a.amount) invested += parseFloat(a.amount) || 0;
+      });
+      if (st === upToStreet) break;
+    }
+    const remaining = Math.max(0, Math.round(startStack - invested));
+    return `<div style="font-size:.65rem;color:var(--dim);margin-top:2px;">Hero stack: $${remaining}</div>`;
   }
 
   // Render each street in flow
@@ -1555,19 +1555,34 @@ function generateRecap(mode) {
       if (actions.preflop.length > 0) {
         const actText = actions.preflop.map(a => {
           const label = a.type === 'allin' ? 'ALL-IN' : a.type.charAt(0).toUpperCase() + a.type.slice(1);
-          return `<strong>${a.playerName}</strong> (${a.position}) ${label}${a.amount ? ' ' + a.amount : ''}`;
+          return `<strong>${a.playerName}</strong> (${a.position}) ${label}${a.amount ? ' $' + a.amount : ''}`;
         }).join(' &rarr; ');
-        storyHTML += `<div class="recap-street"><div class="recap-street-title">Preflop</div><div class="recap-street-actions">${actText}</div></div>`;
+        storyHTML += `<div class="recap-street"><div class="recap-street-title">Preflop</div><div class="recap-street-actions">${actText}</div>${heroStackAfterStreet('preflop')}</div>`;
       }
-    } else if (st === 'flop' && board.flop.some(c => c)) {
-      storyHTML += `<div class="recap-board-label" style="margin-top:12px;">Flop</div>${boardCardsForStreet('flop')}`;
-      storyHTML += streetActionHTML('flop');
-    } else if (st === 'turn' && board.turn[0]) {
-      storyHTML += `<div class="recap-board-label" style="margin-top:12px;">Turn</div>${boardCardsForStreet('turn')}`;
-      storyHTML += streetActionHTML('turn');
-    } else if (st === 'river' && board.river[0]) {
-      storyHTML += `<div class="recap-board-label" style="margin-top:12px;">River</div>${boardCardsForStreet('river')}`;
-      storyHTML += streetActionHTML('river');
+    } else if (st === 'flop') {
+      if (board.flop.some(c => c)) {
+        storyHTML += `<div class="recap-board-label" style="margin-top:12px;">Flop</div>${boardCardsForStreet('flop')}`;
+      }
+      if (actions.flop.length > 0) {
+        storyHTML += streetActionHTML('flop');
+      }
+      storyHTML += heroStackAfterStreet('flop');
+    } else if (st === 'turn') {
+      if (board.turn[0]) {
+        storyHTML += `<div class="recap-board-label" style="margin-top:12px;">Turn</div>${boardCardsForStreet('turn')}`;
+      }
+      if (actions.turn.length > 0) {
+        storyHTML += streetActionHTML('turn');
+      }
+      storyHTML += heroStackAfterStreet('turn');
+    } else if (st === 'river') {
+      if (board.river[0]) {
+        storyHTML += `<div class="recap-board-label" style="margin-top:12px;">River</div>${boardCardsForStreet('river')}`;
+      }
+      if (actions.river.length > 0) {
+        storyHTML += streetActionHTML('river');
+      }
+      storyHTML += heroStackAfterStreet('river');
     }
   });
 
@@ -1762,7 +1777,145 @@ function getSavedHands() {
 
 function saveSavedHands(hands) {
   localStorage.setItem('pokerHands', JSON.stringify(hands));
+  // Also sync to server
+  syncToServer(hands);
 }
+
+async function syncToServer(hands) {
+  try {
+    await fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(hands)
+    });
+  } catch(e) { /* silent fail */ }
+}
+
+async function syncFromServer() {
+  try {
+    const resp = await fetch('/api/sync');
+    const serverHands = await resp.json();
+    if (Array.isArray(serverHands) && serverHands.length > 0) {
+      // Merge server hands with local
+      const local = getSavedHands();
+      const merged = [...serverHands];
+      for (const lh of local) {
+        if (!merged.find(h => h.id === lh.id)) merged.push(lh);
+      }
+      merged.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      localStorage.setItem('pokerHands', JSON.stringify(merged));
+    }
+  } catch(e) { /* silent fail */ }
+}
+
+// Auto-save: persist current hand state on every change
+function autoSave() {
+  if (!currentHandId) {
+    // Auto-create a hand if none exists
+    const hero = seats.find(s => s.isHero);
+    if (hero || actions.preflop.length > 0 || board.flop.some(c => c)) {
+      const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      let name = 'Hand ' + new Date().toLocaleDateString();
+      if (hero && hero.cards[0]) {
+        name = hero.cards[0].rank + hero.cards[0].suit;
+        if (hero.cards[1]) name += hero.cards[1].rank + hero.cards[1].suit;
+        name += ' — ' + new Date().toLocaleDateString();
+      }
+      const hands = getSavedHands();
+      hands.unshift({ id, name, state: getHandState(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+      saveSavedHands(hands);
+      currentHandId = id;
+      currentHandName = name;
+    }
+  } else {
+    const hands = getSavedHands();
+    const idx = hands.findIndex(h => h.id === currentHandId);
+    if (idx >= 0) {
+      hands[idx].state = getHandState();
+      hands[idx].updatedAt = new Date().toISOString();
+      saveSavedHands(hands);
+    }
+  }
+}
+
+// Debounced auto-save
+let autoSaveTimer = null;
+function scheduleAutoSave() {
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(autoSave, 1000);
+}
+
+// Hook auto-save into renderTable (called after every state change)
+const _origRenderTable = renderTable;
+renderTable = function() {
+  _origRenderTable();
+  scheduleAutoSave();
+};
+
+// Sync from server on load
+syncFromServer();
+
+// Seed TT vs AA hand if no hands exist
+(function seedHands() {
+  const hands = getSavedHands();
+  if (hands.length === 0) {
+    const seed = {
+      id: 'tt_vs_aa_2026',
+      name: 'T♠T♣ vs AA — April 11',
+      createdAt: '2026-04-11T22:00:00.000Z',
+      updatedAt: '2026-04-11T22:00:00.000Z',
+      state: {
+        tableSize: 6, dealerSeatIdx: 0,
+        seats: [
+          {name:'Hero', stack:'2700', cards:[{rank:'10',suit:'♠',color:'black'},{rank:'10',suit:'♣',color:'black'}], isHero:true},
+          {name:'', stack:'', cards:[null,null], isHero:false},
+          {name:'', stack:'', cards:[null,null], isHero:false},
+          {name:'Villain', stack:'8000', cards:[{rank:'A',suit:'♠',color:'black'},{rank:'A',suit:'♥',color:'red'}], isHero:false},
+          {name:'V2', stack:'8000', cards:[null,null], isHero:false},
+          {name:'', stack:'', cards:[null,null], isHero:false}
+        ],
+        board: {
+          flop: [{rank:'8',suit:'♠',color:'black'},{rank:'6',suit:'♥',color:'red'},{rank:'2',suit:'♣',color:'black'}],
+          turn: [{rank:'Q',suit:'♦',color:'red'}],
+          river: [{rank:'5',suit:'♣',color:'black'}]
+        },
+        usedCards: ['10♠','10♣','A♠','A♥','8♠','6♥','2♣','Q♦','5♣'],
+        actions: {
+          preflop: [
+            {seatIdx:3, type:'call', amount:'20', playerName:'Villain', position:'UTG'},
+            {seatIdx:4, type:'call', amount:'20', playerName:'V2', position:'MP'},
+            {seatIdx:0, type:'bet', amount:'100', playerName:'Hero', position:'BTN'},
+            {seatIdx:3, type:'raise', amount:'410', playerName:'Villain', position:'UTG'},
+            {seatIdx:4, type:'fold', amount:'', playerName:'V2', position:'MP'},
+            {seatIdx:0, type:'call', amount:'410', playerName:'Hero', position:'BTN'}
+          ],
+          flop: [
+            {seatIdx:3, type:'bet', amount:'600', playerName:'Villain', position:'UTG'},
+            {seatIdx:0, type:'call', amount:'600', playerName:'Hero', position:'BTN'}
+          ],
+          turn: [
+            {seatIdx:3, type:'check', amount:'', playerName:'Villain', position:'UTG'},
+            {seatIdx:0, type:'check', amount:'', playerName:'Hero', position:'BTN'}
+          ],
+          river: [
+            {seatIdx:3, type:'check', amount:'', playerName:'Villain', position:'UTG'},
+            {seatIdx:0, type:'allin', amount:'1690', playerName:'Hero', position:'BTN'},
+            {seatIdx:3, type:'call', amount:'1690', playerName:'Villain', position:'UTG'}
+          ]
+        },
+        foldedPlayers: [4],
+        currentStreet: 'river',
+        handResult: 'lost',
+        activeTags: ['cooler','3-bet pot'],
+        blinds: '5/10',
+        straddle: '20',
+        gameType: 'cash',
+        notes: 'Was tired, had beers and a big dinner. Moved up from 3/5 to 5/10 while not in A-game. Overplayed TT — shoving river into a 3-bettor who checks twice. Rule: When not in A-game, do NOT move up in stakes.'
+      }
+    };
+    saveSavedHands([seed]);
+  }
+})();
 
 function newHand() {
   document.getElementById('dropdownMenu').classList.remove('open');
