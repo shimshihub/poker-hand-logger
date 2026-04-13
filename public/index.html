@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Poker Hand Builder</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Poker Hand Builder v2</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
@@ -1385,68 +1388,20 @@ function openQuizRecap() {
 }
 
 function generateRecap(mode) {
+  try {
   mode = mode || 'full';
   document.getElementById('quizOverlay').classList.remove('active');
   document.getElementById('dropdownMenu').classList.remove('open');
   const overlay = document.getElementById('recapOverlay');
   const content = document.getElementById('recapContent');
 
-  // ── Gather data ──
+  const heroSeat = seats.find(s => s.isHero);
   const heroIdx = seats.findIndex(s => s.isHero);
-  const heroSeat = heroIdx >= 0 ? seats[heroIdx] : null;
   const heroPos = heroIdx >= 0 ? getPositionForSeat(heroIdx) : '?';
-  const heroStack = heroSeat ? (parseFloat(heroSeat.stack) || 0) : 0;
-  const blindsStr = document.getElementById('blinds').value || '?/?';
-  const blindsParts = blindsStr.split('/');
-  const sbSize = parseFloat(blindsParts[0]) || 0;
-  const bbSize = parseFloat(blindsParts[1]) || 1;
-  const straddleVal = parseFloat(document.getElementById('straddle').value) || 0;
-  const effectiveBB = getBBSize();
+  const blinds = document.getElementById('blinds').value || '?/?';
   const gameType = document.getElementById('gameType').value;
-  const notes = document.getElementById('handNotes').value;
-  const streetOrder = ['preflop','flop','turn','river'];
-
-  // Villains
-  const villains = [];
-  seats.forEach((s, i) => {
-    if (i !== heroIdx && (s.cards[0] || s.cards[1] || s.name) && !s.isHero) {
-      villains.push({ idx: i, seat: s, pos: getPositionForSeat(i), name: s.name || 'Seat '+(i+1), stack: parseFloat(s.stack) || 0 });
-    }
-  });
-
-  // Effective stack + SPR helpers
-  const allStacks = [heroStack, ...villains.map(v => v.stack)].filter(s => s > 0);
-  const effectiveStack = allStacks.length > 1 ? Math.min(...allStacks) : (allStacks[0] || 0);
-
-  function potAtStreet(streetName) {
-    let p = sbSize + bbSize + straddleVal;
-    for (const st of streetOrder) {
-      if (st === streetName) break;
-      actions[st].forEach(a => {
-        if (a.amount && ['bet','raise','call','allin'].includes(a.type)) p += parseFloat(a.amount) || 0;
-      });
-    }
-    return p;
-  }
-
-  function stackAtStreet(seatIdx, streetName) {
-    const start = parseFloat(seats[seatIdx].stack) || 0;
-    let inv = 0;
-    for (const st of streetOrder) {
-      if (st === streetName) break;
-      actions[st].forEach(a => { if (a.seatIdx === seatIdx && a.amount) inv += parseFloat(a.amount) || 0; });
-    }
-    return Math.max(0, start - inv);
-  }
-
-  function sprAt(streetName) {
-    const p = potAtStreet(streetName);
-    if (p === 0) return Infinity;
-    const stacks = [heroIdx, ...villains.map(v => v.idx)].filter(i => i >= 0).map(i => stackAtStreet(i, streetName)).filter(s => s > 0);
-    return stacks.length ? Math.min(...stacks) / p : 0;
-  }
-
-  function fmt$(n) { return '$' + Math.round(n).toLocaleString(); }
+  const pot = calculatePot();
+  const notes = document.getElementById('handNotes')?.value || '';
 
   function cardHTML(c, small) {
     if(!c) return '';
@@ -1455,214 +1410,223 @@ function generateRecap(mode) {
     return `<div class="card ${c.color}" style="width:${w}px;height:${h}px;cursor:default;"><span class="rank">${c.rank}</span><span class="suit">${c.suit}</span></div>`;
   }
 
-  // ── Action color helper ──
-  function actColor(type) {
-    return {bet:'#fbbf24',raise:'#fbbf24',allin:'#fbbf24',call:'#60a5fa',check:'#8b9dc3',fold:'#f87171'}[type] || '#e0e0e0';
+  // Hero cards
+  let heroCardsHTML = '';
+  if(heroSeat && (heroSeat.cards[0] || heroSeat.cards[1])) {
+    heroCardsHTML = `<div class="recap-cards-group">${heroSeat.cards.map(c => cardHTML(c)).join('')}</div>`;
   }
 
-  // ── Street flow for quiz modes ──
-  const streetFlow = {
-    'after-preflop':   { streets:['preflop'], quizBoard:'flop', quizText:'What would you do here?' },
-    'after-flop':      { streets:['preflop','flop'], quizBoard:'turn', quizText:'What\'s your play?' },
-    'after-turn':      { streets:['preflop','flop','turn'], quizBoard:'river', quizText:'River decision — what do you do?' },
-    'before-showdown': { streets:['preflop','flop','turn','river'], quizBoard:null, quizText:'What did villain have?' },
-    'full':            { streets:['preflop','flop','turn','river'], quizBoard:null, quizText:null }
-  };
-  const flow = streetFlow[mode] || streetFlow['full'];
-  const showShowdown = mode === 'full';
-
-  // ── HEADER ──
-  const straddleText = straddleVal > 0 ? ` | Straddle ${fmt$(straddleVal)}` : '';
-  const initialSPR = effectiveStack > 0 && potAtStreet('preflop') > 0 ? (effectiveStack / potAtStreet('preflop')).toFixed(1) : '-';
-
-  let html = `<div class="recap-card" style="max-width:480px;margin:0 auto;padding:20px;">`;
-  html += `<div style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px;text-align:center;">
-    <h2 style="margin:0 0 6px;font-size:1.3rem;font-weight:900;background:linear-gradient(135deg,#ffd700,#ffaa00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Hand Recap</h2>
-    <div style="color:var(--muted);font-size:.85rem;">${gameType.charAt(0).toUpperCase()+gameType.slice(1)} | ${blindsStr}${straddleText} | ${tableSize}-max</div>
-  </div>`;
-
-  // ── STACKS ──
-  html += `<div style="display:flex;flex-wrap:wrap;gap:8px 18px;margin-bottom:14px;font-size:.85rem;">
-    <div><span style="color:var(--muted);">Hero (${heroPos}):</span> <strong style="color:var(--text);">${fmt$(heroStack)}</strong></div>
-    ${villains.map(v => `<div><span style="color:var(--muted);">${v.name} (${v.pos}):</span> <strong style="color:var(--text);">${fmt$(v.stack)}</strong></div>`).join('')}
-    <div><span style="color:var(--muted);">Effective:</span> <strong style="color:var(--gold);">${fmt$(effectiveStack)}</strong></div>
-    <div><span style="color:var(--muted);">SPR:</span> <strong style="color:var(--gold);">${initialSPR}</strong></div>
-  </div>`;
-
-  // ── HERO CARDS ──
-  if (heroSeat && (heroSeat.cards[0] || heroSeat.cards[1])) {
-    html += `<div style="margin-bottom:16px;">
-      <div style="color:var(--muted);font-size:.75rem;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Hero Hand</div>
-      <div style="display:flex;gap:6px;">${heroSeat.cards.map(c => cardHTML(c)).join('')}</div>
-    </div>`;
-  }
-
-  // ── STREET SECTIONS ──
-  flow.streets.forEach(st => {
-    const hasActions = actions[st].length > 0;
-    const hasBoard = st === 'flop' ? board.flop.some(c => c) : st === 'turn' ? !!board.turn[0] : st === 'river' ? !!board.river[0] : false;
-    if (!hasActions && !hasBoard && st !== 'preflop') return;
-
-    const pot = potAtStreet(st);
-    const spr = sprAt(st);
-    const label = st.charAt(0).toUpperCase() + st.slice(1);
-
-    // Street header
-    html += `<div style="margin-top:20px;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-        <div style="font-size:1.1rem;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:1.5px;">${label}</div>
-        <div style="flex:1;height:1px;background:var(--border);"></div>
-        ${st !== 'preflop' ? `<div style="font-size:.75rem;color:var(--dim);">SPR ${spr === Infinity ? '-' : spr.toFixed(1)}</div>` : ''}
-      </div>`;
-
-    // Board cards
-    if (st !== 'preflop' && hasBoard) {
-      html += `<div style="display:flex;gap:4px;align-items:center;margin-bottom:10px;">`;
-      board.flop.forEach(c => { if(c) html += cardHTML(c, true); });
-      if ((st === 'turn' || st === 'river') && board.turn[0]) {
-        html += `<div style="width:1px;height:36px;background:#3a4a6a;margin:0 6px;"></div>`;
-        html += cardHTML(board.turn[0], true);
-      }
-      if (st === 'river' && board.river[0]) {
-        html += `<div style="width:1px;height:36px;background:#3a4a6a;margin:0 6px;"></div>`;
-        html += cardHTML(board.river[0], true);
-      }
-      html += `</div>`;
+  // Villain cards
+  let villainCardsHTML = '';
+  seats.forEach((s, i) => {
+    if(i !== heroIdx && (s.cards[0] || s.cards[1]) && (s.name || !s.isHero)) {
+      const pos = getPositionForSeat(i);
+      const name = s.name || `Seat ${i+1}`;
+      villainCardsHTML += `
+        <span class="recap-vs">${name} (${pos})</span>
+        <div class="recap-cards-group">${s.cards.map(c => cardHTML(c)).join('')}</div>
+      `;
     }
-
-    // Pot display
-    html += `<div style="color:var(--gold);font-weight:600;font-size:.9rem;margin-bottom:10px;">Pot: ${fmt$(pot)}</div>`;
-
-    // Actions - one per line, color-coded
-    if (hasActions) {
-      let runPot = pot;
-      actions[st].forEach(a => {
-        const amt = parseFloat(a.amount) || 0;
-        const potBefore = runPot;
-        if (amt && ['bet','raise','call','allin'].includes(a.type)) runPot += amt;
-        const isHero = a.seatIdx === heroIdx;
-        const isFold = a.type === 'fold';
-        const color = actColor(a.type);
-        const lbl = a.type === 'allin' ? 'ALL-IN' : a.type.charAt(0).toUpperCase() + a.type.slice(1);
-        const bg = isHero ? 'background:rgba(74,222,128,.04);border-left:2px solid rgba(74,222,128,.3);padding-left:8px;' : 'padding-left:10px;';
-        const badge = isHero ? `<span style="background:#2a3550;color:#60a5fa;font-size:.6rem;padding:1px 5px;border-radius:3px;margin-left:6px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;">Decision</span>` : '';
-        const nameColor = isHero ? '#4ade80' : 'var(--text)';
-        const txtDec = isFold ? 'text-decoration:line-through;' : '';
-
-        let detail = '';
-        if (amt > 0) {
-          detail = ` ${fmt$(amt)}`;
-          if (['bet','raise','allin'].includes(a.type) && potBefore > 0) {
-            detail += ` <span style="color:var(--dim);font-size:.78em;">(into ${fmt$(potBefore)} pot)</span>`;
-          }
-        }
-
-        html += `<div style="${bg}margin-bottom:4px;font-size:.88rem;line-height:1.6;">
-          <span style="color:${nameColor};font-weight:600;">${a.playerName}</span>
-          <span style="color:var(--dim);font-size:.78em;"> (${a.position})</span>${badge}
-          <div style="margin-left:2px;${txtDec}">
-            <span style="color:${color};font-weight:600;">${lbl}</span>${detail}
-            ${amt > 0 ? `<span style="color:var(--dim);font-size:.72em;margin-left:6px;">[pot: ${fmt$(runPot)}]</span>` : ''}
-          </div>
-        </div>`;
-      });
-    }
-
-    html += `</div>`;
   });
 
-  // Quiz: show next board + prompt
+  // Board
+  let boardHTML = '';
+  const allBoard = [...board.flop, ...board.turn, ...board.river].filter(Boolean);
+  if(allBoard.length > 0) {
+    boardHTML = '<div class="recap-board-label">Board</div><div class="recap-board-cards">';
+    board.flop.forEach(c => { if(c) boardHTML += cardHTML(c, true); });
+    if(board.turn[0]) {
+      boardHTML += '<div class="board-divider" style="width:1px;height:40px;background:#3a4a6a;margin:0 4px;"></div>';
+      boardHTML += cardHTML(board.turn[0], true);
+    }
+    if(board.river[0]) {
+      boardHTML += '<div class="board-divider" style="width:1px;height:40px;background:#3a4a6a;margin:0 4px;"></div>';
+      boardHTML += cardHTML(board.river[0], true);
+    }
+    boardHTML += '</div>';
+  }
+
+  // Street actions
+  let streetsHTML = '';
+  ['preflop','flop','turn','river'].forEach(st => {
+    if(actions[st].length === 0) return;
+    const actionsText = actions[st].map(a => {
+      const label = a.type === 'allin' ? 'ALL-IN' : a.type.charAt(0).toUpperCase() + a.type.slice(1);
+      return `<strong>${a.playerName}</strong> (${a.position}) ${label}${a.amount ? ' ' + a.amount : ''}`;
+    }).join(' &rarr; ');
+    streetsHTML += `
+      <div class="recap-street">
+        <div class="recap-street-title">${st.charAt(0).toUpperCase() + st.slice(1)}</div>
+        <div class="recap-street-actions">${actionsText}</div>
+      </div>
+    `;
+  });
+
+  // Tags
+  let tagsHTML = '';
+  if(activeTags.size > 0) {
+    const tagColors = {bluff:'#3b1f4a;color:#c084fc',cooler:'#3b2a1a;color:#fbbf24','hero fold':'#1a2a4a;color:#60a5fa','value bet':'#1a3a2a;color:#4ade80','slow play':'#3b1a3b;color:#e879f9','3-bet pot':'#3b2a1a;color:#fb923c'};
+    tagsHTML = '<div class="recap-tags">';
+    activeTags.forEach(tag => {
+      const style = tagColors[tag] || '#1a2a3a;color:#8b9dc3';
+      tagsHTML += `<span class="recap-tag" style="background:${style}">${tag}</span>`;
+    });
+    tagsHTML += '</div>';
+  }
+
+  // Result
+  let resultHTML = '';
+  if(handResult) {
+    const cls = handResult === 'won' ? 'won' : 'lost';
+    const color = handResult === 'won' ? 'var(--green)' : 'var(--red)';
+    resultHTML = `
+      <div class="recap-result ${cls}">
+        <div class="result-text" style="color:${color}">${handResult === 'won' ? 'Won' : 'Lost'}</div>
+        <div class="result-pot">Pot: ${pot}</div>
+      </div>
+    `;
+  }
+
+  // Straddle for title
+  const straddleVal = parseFloat(document.getElementById('straddle').value) || 0;
+  const straddleText = straddleVal > 0 ? ` | Straddle $${straddleVal}` : '';
+
+  // Face-down card HTML
+  function faceDownCard() {
+    return `<div class="card" style="width:44px;height:62px;cursor:default;background:linear-gradient(135deg,#2a3550,#1e2a40);border:1px solid #3a4a6a;display:flex;align-items:center;justify-content:center;"><span style="color:#5a6a8a;font-size:1.2rem;">?</span></div>`;
+  }
+
+  // Villain names + positions for face-down display
+  let villainFaceDownHTML = '';
+  seats.forEach((s, i) => {
+    if(i !== heroIdx && (s.cards[0] || s.cards[1]) && (s.name || !s.isHero)) {
+      const pos = getPositionForSeat(i);
+      const name = s.name || `Seat ${i+1}`;
+      villainFaceDownHTML += `
+        <span class="recap-vs">${name} (${pos})</span>
+        <div class="recap-cards-group">${faceDownCard()}${faceDownCard()}</div>
+      `;
+    }
+  });
+
+  // Board cards per street
+  function boardCardsForStreet(upToStreet) {
+    let html = '<div class="recap-board-cards" style="display:flex;gap:4px;align-items:center;">';
+    board.flop.forEach(c => { if(c) html += cardHTML(c, true); });
+    if ((upToStreet === 'turn' || upToStreet === 'river') && board.turn[0]) {
+      html += '<div style="width:1px;height:40px;background:#3a4a6a;margin:0 4px;"></div>';
+      html += cardHTML(board.turn[0], true);
+    }
+    if (upToStreet === 'river' && board.river[0]) {
+      html += '<div style="width:1px;height:40px;background:#3a4a6a;margin:0 4px;"></div>';
+      html += cardHTML(board.river[0], true);
+    }
+    html += '</div>';
+    return html;
+  }
+
+  // Build story-style recap based on mode
+  // Modes: 'full', 'after-preflop', 'after-flop', 'after-turn', 'before-showdown'
+  // Define what each mode shows:
+  const streetFlow = {
+    'after-preflop':   { streets: ['preflop'], quizBoard: 'flop',  quizText: 'What would you do here?' },
+    'after-flop':      { streets: ['preflop','flop'], quizBoard: 'turn', quizText: "What's your play?" },
+    'after-turn':      { streets: ['preflop','flop','turn'], quizBoard: 'river', quizText: 'River decision — what do you do?' },
+    'before-showdown': { streets: ['preflop','flop','turn','river'], quizBoard: null, quizText: 'What did villain have?' },
+    'full':            { streets: ['preflop','flop','turn','river'], quizBoard: null, quizText: null }
+  };
+
+  const flow = streetFlow[mode] || streetFlow['full'];
+  const showShowdown = mode === 'full';
+  let storyHTML = '';
+
+  function streetActionHTML(st) {
+    if (actions[st].length === 0) return '';
+    const actText = actions[st].map(a => {
+      const label = a.type === 'allin' ? 'ALL-IN' : a.type.charAt(0).toUpperCase() + a.type.slice(1);
+      return `<strong>${a.playerName}</strong> (${a.position}) ${label}${a.amount ? ' ' + a.amount : ''}`;
+    }).join(' &rarr; ');
+    return `<div class="recap-street"><div class="recap-street-actions">${actText}</div></div>`;
+  }
+
+  // Render each street in flow
+  flow.streets.forEach(st => {
+    if (st === 'preflop') {
+      if (actions.preflop.length > 0) {
+        const actText = actions.preflop.map(a => {
+          const label = a.type === 'allin' ? 'ALL-IN' : a.type.charAt(0).toUpperCase() + a.type.slice(1);
+          return `<strong>${a.playerName}</strong> (${a.position}) ${label}${a.amount ? ' ' + a.amount : ''}`;
+        }).join(' &rarr; ');
+        storyHTML += `<div class="recap-street"><div class="recap-street-title">Preflop</div><div class="recap-street-actions">${actText}</div></div>`;
+      }
+    } else if (st === 'flop' && board.flop.some(c => c)) {
+      storyHTML += `<div class="recap-board-label" style="margin-top:12px;">Flop</div>${boardCardsForStreet('flop')}`;
+      storyHTML += streetActionHTML('flop');
+    } else if (st === 'turn' && board.turn[0]) {
+      storyHTML += `<div class="recap-board-label" style="margin-top:12px;">Turn</div>${boardCardsForStreet('turn')}`;
+      storyHTML += streetActionHTML('turn');
+    } else if (st === 'river' && board.river[0]) {
+      storyHTML += `<div class="recap-board-label" style="margin-top:12px;">River</div>${boardCardsForStreet('river')}`;
+      storyHTML += streetActionHTML('river');
+    }
+  });
+
+  // Quiz: show the next board card + prompt
   if (flow.quizBoard) {
-    const qst = flow.quizBoard;
-    const hasQBoard = qst === 'flop' ? board.flop.some(c => c) : qst === 'turn' ? !!board.turn[0] : qst === 'river' ? !!board.river[0] : false;
-    if (hasQBoard) {
-      html += `<div style="margin-top:16px;"><div style="color:var(--dim);font-size:.7rem;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">${qst}</div>`;
-      html += `<div style="display:flex;gap:4px;align-items:center;">`;
-      board.flop.forEach(c => { if(c) html += cardHTML(c, true); });
-      if ((qst === 'turn' || qst === 'river') && board.turn[0]) { html += `<div style="width:1px;height:36px;background:#3a4a6a;margin:0 6px;"></div>`; html += cardHTML(board.turn[0], true); }
-      if (qst === 'river' && board.river[0]) { html += `<div style="width:1px;height:36px;background:#3a4a6a;margin:0 6px;"></div>`; html += cardHTML(board.river[0], true); }
-      html += `</div></div>`;
+    if (flow.quizBoard === 'flop' && board.flop.some(c => c)) {
+      storyHTML += `<div class="recap-board-label" style="margin-top:12px;">Flop</div>${boardCardsForStreet('flop')}`;
+    } else if (flow.quizBoard === 'turn' && board.turn[0]) {
+      storyHTML += `<div class="recap-board-label" style="margin-top:12px;">Turn</div>${boardCardsForStreet('turn')}`;
+    } else if (flow.quizBoard === 'river' && board.river[0]) {
+      storyHTML += `<div class="recap-board-label" style="margin-top:12px;">River</div>${boardCardsForStreet('river')}`;
     }
   }
+
+  // Quiz prompt
   if (flow.quizText && mode !== 'full') {
-    html += `<div class="recap-quiz-prompt">${flow.quizText}</div>`;
+    storyHTML += `<div class="recap-quiz-prompt">${flow.quizText}</div>`;
   }
 
-  // ── SHOWDOWN ──
-  const hasVillainCards = villains.some(v => v.seat.cards[0] || v.seat.cards[1]);
-  if (hasVillainCards) {
-    const revealedHTML = villains.filter(v => v.seat.cards[0] || v.seat.cards[1]).map(v =>
-      `<div style="margin-bottom:8px;"><span style="color:var(--muted);font-size:.85rem;">${v.name} (${v.pos})</span>
-       <div style="display:flex;gap:4px;margin-top:4px;">${v.seat.cards.map(c => cardHTML(c)).join('')}</div></div>`
-    ).join('');
-    const faceDownHTML = villains.filter(v => v.seat.cards[0] || v.seat.cards[1]).map(v =>
-      `<div style="margin-bottom:8px;"><span style="color:var(--muted);font-size:.85rem;">${v.name} (${v.pos})</span>
-       <div style="display:flex;gap:4px;margin-top:4px;">
-         <div class="card" style="width:44px;height:62px;cursor:default;background:linear-gradient(135deg,#2a3550,#1e2a40);border:1px solid #3a4a6a;display:flex;align-items:center;justify-content:center;"><span style="color:#5a6a8a;font-size:1.2rem;">?</span></div>
-         <div class="card" style="width:44px;height:62px;cursor:default;background:linear-gradient(135deg,#2a3550,#1e2a40);border:1px solid #3a4a6a;display:flex;align-items:center;justify-content:center;"><span style="color:#5a6a8a;font-size:1.2rem;">?</span></div>
-       </div></div>`
-    ).join('');
-
-    const totalPot = calculatePot();
-    let resultInner = '';
-    if (handResult) {
-      const rc = handResult === 'won' ? 'var(--green)' : 'var(--red)';
-      resultInner = `<div style="margin-top:12px;text-align:center;">
-        <span style="color:${rc};font-size:1.3rem;font-weight:700;">${handResult === 'won' ? 'WON' : 'LOST'}</span>
-        <span style="color:var(--muted);font-size:1rem;margin-left:8px;">Pot: ${fmt$(totalPot)}</span>
-      </div>`;
-    }
-
-    html += `<div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border);">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-        <div style="font-size:1.1rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;">Showdown</div>
-        <div style="flex:1;height:1px;background:var(--border);"></div>
+  // Reveal villain cards (full mode only)
+  let villainRevealHTML = '';
+  if (showShowdown && villainCardsHTML) {
+    villainRevealHTML = `
+      <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
+        <div class="recap-board-label">Showdown</div>
+        <div class="recap-cards-row">${villainCardsHTML}</div>
       </div>
-      <div id="recapVHidden">${faceDownHTML}
-        <button onclick="document.getElementById('recapVHidden').style.display='none';document.getElementById('recapVRevealed').style.display='block';"
-          style="margin-top:8px;background:linear-gradient(135deg,#2a3550,#1e2a40);border:1px solid var(--border);color:var(--gold);padding:10px 20px;border-radius:8px;cursor:pointer;font-size:.9rem;font-weight:600;width:100%;">
-          Reveal Villain
-        </button>
+    `;
+  }
+
+  content.innerHTML = `
+    <div class="recap-card">
+      <div class="recap-header">
+        <h2>Hand Recap</h2>
+        <div class="recap-meta">${gameType.charAt(0).toUpperCase() + gameType.slice(1)} | ${blinds}${straddleText} | ${tableSize}-max</div>
       </div>
-      <div id="recapVRevealed" style="display:none;">
-        ${revealedHTML}
-        ${resultInner}
-        <div style="margin-top:10px;">
-          <div style="color:var(--dim);font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Villain Range Notes</div>
-          <div contenteditable="true" style="background:var(--bg);border:1px dashed var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:.85rem;min-height:24px;outline:none;" placeholder="Sets, Overpairs, 87s..."></div>
-        </div>
+
+      <div class="recap-positions">
+        <span class="recap-position">Hero: ${heroPos}</span>
       </div>
-    </div>`;
-  } else if (showShowdown && handResult) {
-    const totalPot = calculatePot();
-    const rc = handResult === 'won' ? 'var(--green)' : 'var(--red)';
-    html += `<div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border);text-align:center;">
-      <span style="color:${rc};font-size:1.3rem;font-weight:700;">${handResult === 'won' ? 'WON' : 'LOST'}</span>
-      <span style="color:var(--muted);font-size:1rem;margin-left:8px;">Pot: ${fmt$(totalPot)}</span>
-    </div>`;
-  }
 
-  // ── TAGS ──
-  if (showShowdown && activeTags.size > 0) {
-    const tc = {bluff:'background:#3b1f4a;color:#c084fc',cooler:'background:#3b2a1a;color:#fbbf24','hero fold':'background:#1a2a4a;color:#60a5fa','value bet':'background:#1a3a2a;color:#4ade80','slow play':'background:#3b1a3b;color:#e879f9','3-bet pot':'background:#3b2a1a;color:#fb923c'};
-    html += `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;justify-content:center;">`;
-    activeTags.forEach(tag => { html += `<span style="${tc[tag]||'background:#1a2a3a;color:#8b9dc3'};padding:3px 10px;border-radius:12px;font-size:.78rem;font-weight:600;">${tag}</span>`; });
-    html += `</div>`;
-  }
+      <div class="recap-cards-row">
+        ${heroCardsHTML}
+        ${villainFaceDownHTML}
+      </div>
 
-  // ── NOTES ──
-  if (showShowdown && notes) {
-    html += `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
-      <div style="color:var(--dim);font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Notes</div>
-      <div style="color:var(--text);font-size:.88rem;line-height:1.5;white-space:pre-wrap;">${notes}</div>
-    </div>`;
-  }
+      ${storyHTML}
+      ${villainRevealHTML}
+      ${showShowdown ? resultHTML : ''}
+      ${showShowdown ? tagsHTML : ''}
+      ${showShowdown && notes ? `<div class="recap-notes">${notes}</div>` : ''}
+    </div>
+  `;
 
-  html += `</div>`; // close recap-card
-
-  // Done — skip old code below
-  content.innerHTML = html;
   overlay.classList.add('open');
+  } catch(err) {
+    console.error('Recap error:', err);
+    alert('Recap error: ' + err.message);
+  }
 }
 
 async function shareRecap() {
@@ -1798,31 +1762,7 @@ function getSavedHands() {
 
 function saveSavedHands(hands) {
   localStorage.setItem('pokerHands', JSON.stringify(hands));
-  // Sync to server for cross-device access
-  fetch('/api/sync', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(hands)
-  }).catch(() => {});
 }
-
-async function syncFromServer() {
-  try {
-    const res = await fetch('/api/sync');
-    if (!res.ok) return;
-    const serverHands = await res.json();
-    const localHands = getSavedHands();
-    const merged = [...serverHands];
-    for (const lh of localHands) {
-      if (!merged.find(h => h.id === lh.id)) merged.push(lh);
-    }
-    merged.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    localStorage.setItem('pokerHands', JSON.stringify(merged));
-  } catch (e) {
-    console.log('Server sync unavailable, using local data');
-  }
-}
-syncFromServer();
 
 function newHand() {
   document.getElementById('dropdownMenu').classList.remove('open');
@@ -1903,12 +1843,9 @@ function confirmSaveAs() {
   showToast('Hand saved as "' + name + '"');
 }
 
-async function openLoadModal() {
+function openLoadModal() {
   document.getElementById('dropdownMenu').classList.remove('open');
   const list = document.getElementById('loadList');
-  list.innerHTML = '<div class="load-empty">Loading...</div>';
-  document.getElementById('loadOverlay').classList.add('active');
-  await syncFromServer();
   const hands = getSavedHands();
 
   if (hands.length === 0) {
