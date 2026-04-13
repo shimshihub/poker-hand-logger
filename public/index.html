@@ -1057,6 +1057,8 @@ function getActiveSeats() {
 }
 
 function getBBSize() {
+  const straddle = parseFloat(document.getElementById('straddle').value) || 0;
+  if(straddle > 0) return straddle;
   const blindsStr = document.getElementById('blinds').value;
   const parts = blindsStr.split('/');
   return parseFloat(parts[1]) || 2;
