@@ -1068,7 +1068,7 @@ function renderActivePlayers() {
     const name = s.isHero ? 'Hero' : s.name;
     const remaining = getRemainingStack(seatIdx);
     let stackInfo = '';
-    if(remaining !== null) {
+    if(remaining !== null && remaining >= 0) {
       const bbs = Math.round(remaining / bb);
       stackInfo = `<br><span style="font-size:.55rem;color:var(--gold);">$${remaining} (${bbs}bb)</span>`;
     }
@@ -1154,18 +1154,26 @@ function renderTimeline() {
     let stackAfter = '';
     const startStack = parseFloat(seats[a.seatIdx]?.stack) || 0;
     if(startStack > 0) {
-      let invested = 0;
+      let totalInv = 0;
       const allStreets = ['preflop','flop','turn','river'];
       for(const st of allStreets) {
+        let streetInv = 0;
         for(let j = 0; j < actions[st].length; j++) {
-          if(actions[st][j].seatIdx === a.seatIdx && actions[st][j].amount) {
-            invested += parseFloat(actions[st][j].amount) || 0;
+          const act = actions[st][j];
+          if(act.seatIdx === a.seatIdx) {
+            const amt = parseFloat(act.amount) || 0;
+            if(act.type === 'call' && amt === 0) {
+              streetInv = getLastBetBeforeAction(st, act) || streetInv;
+            } else if(amt > 0) {
+              streetInv = Math.max(streetInv, amt);
+            }
           }
           if(st === currentStreet && j === i) break;
         }
+        totalInv += streetInv;
         if(st === currentStreet) break;
       }
-      const rem = Math.max(0, Math.round(startStack - invested));
+      const rem = Math.max(0, Math.round(startStack - totalInv));
       const bbs = Math.round(rem / getBBSize());
       stackAfter = `<span style="font-size:.55rem;color:var(--dim);margin-left:4px;">$${rem} / ${bbs}bb</span>`;
     }
@@ -1271,34 +1279,47 @@ function getBBSize() {
 
 function getRemainingStack(seatIdx) {
   const startStack = parseFloat(seats[seatIdx].stack) || 0;
-  if (startStack === 0) return 0;
+  if (startStack === 0) return null;
   let totalInvested = 0;
 
-  // Sum all amounts this player has put in across all streets up to current
+  // In poker, bet/raise/call/allin amounts represent the TOTAL commitment for that action.
+  // Per street, a player's investment is their LAST action amount (the highest they committed to).
+  // E.g. Hero bets $100, then calls a raise to $410 → Hero put in $410 that street (not $510).
   const streetOrder = ['preflop', 'flop', 'turn', 'river'];
   const currentStreetIdx = streetOrder.indexOf(currentStreet);
 
   for (let si = 0; si <= currentStreetIdx; si++) {
     const st = streetOrder[si];
+    let streetInvested = 0;
     actions[st].forEach(a => {
-      if (a.seatIdx === seatIdx && a.amount) {
-        totalInvested += parseFloat(a.amount) || 0;
+      if (a.seatIdx === seatIdx) {
+        const amt = parseFloat(a.amount) || 0;
+        if (a.type === 'call' && amt === 0) {
+          // Call with no amount: match the last bet/raise
+          const lastBet = getLastBetBeforeAction(st, a);
+          streetInvested = lastBet || streetInvested;
+        } else if (amt > 0) {
+          // For bet/raise/call/allin: this is total commitment this street
+          streetInvested = Math.max(streetInvested, amt);
+        }
       }
     });
+    totalInvested += streetInvested;
   }
 
-  // Also account for blinds/straddle if this player is SB, BB, or straddle
-  const pos = getPositionForSeat(seatIdx);
-  const blindsStr = document.getElementById('blinds').value;
-  const parts = blindsStr.split('/');
-  if (pos === 'SB') totalInvested += parseFloat(parts[0]) || 0;
-  if (pos === 'BB') totalInvested += parseFloat(parts[1]) || 0;
-  const straddle = parseFloat(document.getElementById('straddle').value) || 0;
-  // Straddle is typically UTG or the position after BB
-  // For simplicity, if there's a straddle and this is the first position after BB, add it
-  // Actually, straddle is posted by specific seat — skip auto-adding for now
-
   return Math.max(0, Math.round(startStack - totalInvested));
+}
+
+function getLastBetBeforeAction(street, targetAction) {
+  const streetActions = actions[street];
+  let lastBet = 0;
+  for (const a of streetActions) {
+    if (a === targetAction) break;
+    if (['bet', 'raise', 'allin'].includes(a.type) && a.amount) {
+      lastBet = parseFloat(a.amount) || 0;
+    }
+  }
+  return lastBet;
 }
 
 function calculatePot() {
