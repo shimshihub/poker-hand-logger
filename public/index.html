@@ -1001,22 +1001,24 @@ function renderActionBoard() {
   container.classList.add('visible');
   let html = '';
 
-  function cardHtml(c) {
-    if (!c) return '<div class="mini-board-card empty"></div>';
-    return `<div class="mini-board-card ${c.color}"><span>${c.rank}</span><span>${c.suit}</span></div>`;
+  function cardHtml(c, onclick) {
+    if (!c) return `<div class="mini-board-card empty" style="cursor:pointer;" onclick="${onclick}">?</div>`;
+    return `<div class="mini-board-card ${c.color}" style="cursor:pointer;" onclick="${onclick}"><span>${c.rank}</span><span>${c.suit}</span></div>`;
   }
 
-  // Always show flop
-  html += cardHtml(board.flop[0]) + cardHtml(board.flop[1]) + cardHtml(board.flop[2]);
+  // Always show flop when on flop/turn/river
+  html += cardHtml(board.flop[0], "openCardPicker('flop',0)");
+  html += cardHtml(board.flop[1], "openCardPicker('flop',0)");
+  html += cardHtml(board.flop[2], "openCardPicker('flop',0)");
 
   if (currentStreet === 'turn' || currentStreet === 'river') {
     html += '<div class="mini-divider"></div>';
-    html += cardHtml(board.turn[0]);
+    html += cardHtml(board.turn[0], "openCardPicker('turn',0)");
   }
 
   if (currentStreet === 'river') {
     html += '<div class="mini-divider"></div>';
-    html += cardHtml(board.river[0]);
+    html += cardHtml(board.river[0], "openCardPicker('river',0)");
   }
 
   container.innerHTML = html;
